@@ -1370,6 +1370,14 @@ tr:hover td { background: var(--gray50); }
   cursor: pointer; text-decoration: none; transition: color .2s;
 }
 .lp-nav-link:hover { color: #fff; }
+.lp-nav .btn-ghost {
+  color: rgba(255,255,255,.8);
+  border-color: rgba(255,255,255,.25);
+}
+.lp-nav .btn-ghost:hover {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+}
 .lp-nav-mobile-btn {
   display: none;
   background: var(--teal); color: #fff; border: none;
