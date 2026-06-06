@@ -6,7 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const emailValidator = require('./email-validator.js');
 require('dotenv').config({ override: true });
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const {
   getConnection,
@@ -87,21 +87,33 @@ async function testDatabaseConnection() {
   }
 }
 
-// ===================== EMAIL SENDER (Resend) =====================
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// ===================== EMAIL SENDER (Brevo via nodemailer) =====================
+const smtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+
+const transporter = smtpConfigured ? nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT) || 587,
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+}) : null;
+
+const SMTP_FROM = process.env.SMTP_FROM || `BemCicatri <${process.env.SMTP_USER}>`;
 
 let APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
 async function sendVerificationEmail(toEmail, token) {
-  if (!resend) {
-    console.warn('⚠️ RESEND_API_KEY não configurada. Email não enviado.');
-    return { messageId: 'no-resend' };
+  if (!transporter) {
+    console.warn('⚠️ SMTP não configurado. Email não enviado.');
+    return { messageId: 'no-smtp' };
   }
 
   const confirmPageUrl = `${APP_BASE_URL}/confirm?token=${encodeURIComponent(token)}`;
 
-  const { data, error } = await resend.emails.send({
-    from: 'BemCicatri <onboarding@resend.dev>',
+  const info = await transporter.sendMail({
+    from: SMTP_FROM,
     to: toEmail,
     subject: 'Seu código de confirmação BemCicatri',
     html: `
@@ -117,14 +129,13 @@ async function sendVerificationEmail(toEmail, token) {
     `
   });
 
-  if (error) throw new Error(error.message);
-  return { messageId: data.id };
+  return { messageId: info.messageId };
 }
 
 async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArticle) {
-  if (!resend) {
-    console.warn('⚠️ RESEND_API_KEY não configurada. Email não enviado.');
-    return { messageId: 'no-resend' };
+  if (!transporter) {
+    console.warn('⚠️ SMTP não configurado. Email não enviado.');
+    return { messageId: 'no-smtp' };
   }
 
   const newsSection = newsArticle ? `
@@ -135,8 +146,8 @@ async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArti
     </div>
   ` : '';
 
-  const { data, error } = await resend.emails.send({
-    from: 'BemCicatri <onboarding@resend.dev>',
+  const info = await transporter.sendMail({
+    from: SMTP_FROM,
     to: toEmail,
     subject: 'Alerta de acesso BemCicatri e notícia de saúde',
     html: `
@@ -150,8 +161,7 @@ async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArti
     `
   });
 
-  if (error) throw new Error(error.message);
-  return { messageId: data.id };
+  return { messageId: info.messageId };
 }
 
 // ===================== HEALTH NEWS =====================
