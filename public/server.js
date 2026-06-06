@@ -87,34 +87,34 @@ async function testDatabaseConnection() {
   }
 }
 
-// ===================== EMAIL SENDER (Brevo API HTTP) =====================
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'curso3788@gmail.com';
-const BREVO_FROM_NAME = process.env.BREVO_FROM_NAME || 'BemCicatri';
+// ===================== EMAIL SENDER (Mailersend API HTTP) =====================
+const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
+const MAILERSEND_FROM_EMAIL = process.env.MAILERSEND_FROM_EMAIL || 'curso3788@gmail.com';
+const MAILERSEND_FROM_NAME = process.env.MAILERSEND_FROM_NAME || 'BemCicatri';
 
 let APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
-function brevoSendEmail({ to, subject, html }) {
+function mailersendSendEmail({ to, subject, html }) {
   return new Promise((resolve, reject) => {
-    if (!BREVO_API_KEY) {
-      console.warn('⚠️ BREVO_API_KEY não configurada. Email não enviado.');
-      return resolve({ messageId: 'no-brevo' });
+    if (!MAILERSEND_API_KEY) {
+      console.warn('⚠️ MAILERSEND_API_KEY não configurada. Email não enviado.');
+      return resolve({ messageId: 'no-mailersend' });
     }
 
     const body = JSON.stringify({
-      sender: { name: BREVO_FROM_NAME, email: BREVO_FROM_EMAIL },
+      from: { email: MAILERSEND_FROM_EMAIL, name: MAILERSEND_FROM_NAME },
       to: [{ email: to }],
       subject,
-      htmlContent: html,
+      html,
     });
 
     const req = https.request({
-      hostname: 'api.brevo.com',
-      path: '/v3/smtp/email',
+      hostname: 'api.mailersend.com',
+      path: '/v1/email',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
+        'Authorization': `Bearer ${MAILERSEND_API_KEY}`,
         'Content-Length': Buffer.byteLength(body),
       },
     }, (res) => {
@@ -122,10 +122,9 @@ function brevoSendEmail({ to, subject, html }) {
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          const parsed = JSON.parse(data);
-          resolve({ messageId: parsed.messageId || 'sent' });
+          resolve({ messageId: res.headers['x-message-id'] || 'sent' });
         } else {
-          reject(new Error(`Brevo API error ${res.statusCode}: ${data}`));
+          reject(new Error(`Mailersend API error ${res.statusCode}: ${data}`));
         }
       });
     });
@@ -138,7 +137,7 @@ function brevoSendEmail({ to, subject, html }) {
 
 async function sendVerificationEmail(toEmail, token) {
   const confirmPageUrl = `${APP_BASE_URL}/confirm?token=${encodeURIComponent(token)}`;
-  return brevoSendEmail({
+  return mailersendSendEmail({
     to: toEmail,
     subject: 'Seu código de confirmação BemCicatri',
     html: `
@@ -164,7 +163,7 @@ async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArti
     </div>
   ` : '';
 
-  return brevoSendEmail({
+  return mailersendSendEmail({
     to: toEmail,
     subject: 'Alerta de acesso BemCicatri e notícia de saúde',
     html: `
