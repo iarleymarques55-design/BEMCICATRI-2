@@ -6,7 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const emailValidator = require('./email-validator.js');
 require('dotenv').config({ override: true });
-const nodemailer = require('nodemailer');
+const https = require('https');
 const crypto = require('crypto');
 const {
   getConnection,
@@ -87,33 +87,58 @@ async function testDatabaseConnection() {
   }
 }
 
-// ===================== EMAIL SENDER (Brevo via nodemailer) =====================
-const smtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
-
-const transporter = smtpConfigured ? nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-}) : null;
-
-const SMTP_FROM = process.env.SMTP_FROM || `BemCicatri <${process.env.SMTP_USER}>`;
+// ===================== EMAIL SENDER (Brevo API HTTP) =====================
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'curso3788@gmail.com';
+const BREVO_FROM_NAME = process.env.BREVO_FROM_NAME || 'BemCicatri';
 
 let APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
+function brevoSendEmail({ to, subject, html }) {
+  return new Promise((resolve, reject) => {
+    if (!BREVO_API_KEY) {
+      console.warn('⚠️ BREVO_API_KEY não configurada. Email não enviado.');
+      return resolve({ messageId: 'no-brevo' });
+    }
+
+    const body = JSON.stringify({
+      sender: { name: BREVO_FROM_NAME, email: BREVO_FROM_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    });
+
+    const req = https.request({
+      hostname: 'api.brevo.com',
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': BREVO_API_KEY,
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          const parsed = JSON.parse(data);
+          resolve({ messageId: parsed.messageId || 'sent' });
+        } else {
+          reject(new Error(`Brevo API error ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 async function sendVerificationEmail(toEmail, token) {
-  if (!transporter) {
-    console.warn('⚠️ SMTP não configurado. Email não enviado.');
-    return { messageId: 'no-smtp' };
-  }
-
   const confirmPageUrl = `${APP_BASE_URL}/confirm?token=${encodeURIComponent(token)}`;
-
-  const info = await transporter.sendMail({
-    from: SMTP_FROM,
+  return brevoSendEmail({
     to: toEmail,
     subject: 'Seu código de confirmação BemCicatri',
     html: `
@@ -128,16 +153,9 @@ async function sendVerificationEmail(toEmail, token) {
       </div>
     `
   });
-
-  return { messageId: info.messageId };
 }
 
 async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArticle) {
-  if (!transporter) {
-    console.warn('⚠️ SMTP não configurado. Email não enviado.');
-    return { messageId: 'no-smtp' };
-  }
-
   const newsSection = newsArticle ? `
     <div style="margin-top:24px;padding:18px;background:#f0f9ff;border:1px solid #bfdbfe;border-radius:14px;">
       <h3 style="margin:0 0 8px 0;color:#1d4ed8;">Notícia recomendada de saúde</h3>
@@ -146,8 +164,7 @@ async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArti
     </div>
   ` : '';
 
-  const info = await transporter.sendMail({
-    from: SMTP_FROM,
+  return brevoSendEmail({
     to: toEmail,
     subject: 'Alerta de acesso BemCicatri e notícia de saúde',
     html: `
@@ -160,8 +177,6 @@ async function sendLoginNotificationEmail(toEmail, userName, loginDate, newsArti
       </div>
     `
   });
-
-  return { messageId: info.messageId };
 }
 
 // ===================== HEALTH NEWS =====================
