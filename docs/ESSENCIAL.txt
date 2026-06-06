@@ -1,0 +1,27 @@
+Por que PostgreSQL e não MongoDB?
+
+"Escolhi PostgreSQL porque os dados do BemCicatri são relacionais por natureza — um usuário tem vários pacientes, 
+cada paciente tem histórico de evolução, eficácia e estado do simulador. 
+Esse tipo de relação funciona muito melhor em banco relacional com integridade garantida. 
+MongoDB seria mais adequado se os dados fossem mais flexíveis e sem estrutura definida, o que não é o caso aqui."
+
+O problema do SMTP:
+
+"Quando fui configurar o envio de e-mails, descobri que o Railway bloqueia conexões SMTP nas portas 587 e 465 por padrão — 
+é uma política de segurança comum em plataformas de nuvem para evitar spam. Tentei Brevo via SMTP, não funcionou. 
+Então migrei para integração via API HTTP pura, usando o módulo https nativo do Node.js, sem nenhuma biblioteca externa. 
+Isso me ensinou muito sobre como funcionam requisições HTTP por baixo dos panos."
+
+O erro do PAC-001:
+
+"Quando criei o sistema de pacientes, gerava um ID local no frontend no formato PAC-001 antes de salvar no banco. 
+O problema é que o banco usa INTEGER como tipo de ID — então quando o sistema tentava buscar um paciente com ID PAC-001, o PostgreSQL retornava erro de tipo inválido. 
+A correção foi simples mas importante: remover a geração de ID local e usar o ID real retornado pelo banco após a inserção."
+
+Minhas principais decisões:
+
+-> Alteração brusca de Localstorage para postgresql
+-> Implementação da lógica de cadastro
+-> Mudança de CSS
+-> Implementação de Express.js
+-> Mudanças em relação a formatação do projeto
