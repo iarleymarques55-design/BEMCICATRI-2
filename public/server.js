@@ -268,63 +268,30 @@ app.post('/api/email/verify', async (req, res) => {
 
     const emailLower = email.toLowerCase().trim();
     
-    console.log(`\n📧 === VERIFICAÇÃO DE EMAIL ===`);
-    console.log(`📨 Email: ${emailLower}`);
-
-    // Validar o email
-    const result = await emailValidator.validateEmail(emailLower);
-    
-    console.log(`✓ Validação retornou:`, result);
-
-    // Se o email for inválido (formato/domínio), retornar erro imediatamente
-    if (!result.valid) {
-      console.log(`❌ Email inválido: ${result.reason}`);
-      return res.json(result);
+    // Validar apenas o formato do email (sem checagem SMTP/DNS)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailLower)) {
+      return res.json({ valid: false, reason: 'invalid_format', message: '✗ Formato de e-mail inválido' });
     }
 
-    // Se o email for válido, verificar se já está cadastrado
-    console.log(`✓ Email tem formato e domínio válido`);
-    console.log(`🔍 Verificando no banco de dados...`);
-    
+    // Verificar se já está cadastrado
     try {
       const connection = await getConnection();
-      const [existing] = await connection.query(
-        'SELECT id, email FROM users WHERE email = ?', 
-        [emailLower]
-      );
+      const [existing] = await connection.query('SELECT id FROM users WHERE email = ?', [emailLower]);
       connection.release();
 
       if (existing.length > 0) {
-        console.log(`⚠️ Email já cadastrado no banco`);
-        return res.json({
-          valid: false,
-          reason: 'email_already_registered',
-          message: '✗ E-mail já cadastrado'
-        });
+        return res.json({ valid: false, reason: 'email_already_registered', message: '✗ E-mail já cadastrado' });
       }
-      
-      console.log(`✅ Email não está cadastrado`);
-      
     } catch (dbError) {
       console.error('⚠️ Erro ao verificar email no banco:', dbError.message);
-      // Continuar mesmo se banco falhar
     }
 
-    // Email válido e disponível
-    console.log(`✅ EMAIL APROVADO: ${emailLower}`);
-    return res.json({
-      valid: true,
-      reason: 'valid',
-      message: '✓ E-mail válido e disponível'
-    });
+    return res.json({ valid: true, reason: 'valid', message: '✓ E-mail válido e disponível' });
     
   } catch (error) {
     console.error('❌ Erro na verificação de email:', error.message);
-    res.status(500).json({ 
-      valid: false, 
-      reason: 'verification_error',
-      message: 'Erro ao verificar e-mail. Tente novamente.' 
-    });
+    res.status(500).json({ valid: false, reason: 'verification_error', message: 'Erro ao verificar e-mail.' });
   }
 });
 
