@@ -1052,17 +1052,17 @@ async function addPatient() {
     if (isNaN(imcValue) || imcValue < 10 || imcValue > 60) { setFieldError('p-imc','IMC fora do intervalo humano plausível'); hasErr = true; }
   }
   if (hasErr) { showAlert('pat-err', true, '⚠️ Corrija os campos acima.'); return; }
-  const id = 'PAC-' + String(patients.length + 1).padStart(3, '0');
   const regDate = new Date().toLocaleDateString('pt-BR');
-  const newP = { id, userEmail: currentUser.email, nome, idade: parseInt(idade), diab: diab || 'Não informado', ferida, tel, wagner, obs, hba1c, imc, healProgress: 0, regDate, history: [{date: regDate, note:'Cadastro inicial', pct:0}] };
-  try { await apiCreatePatient(newP); }
-  catch (e) { showAlert('pat-err', true, '❌ Falha ao salvar.'); return; }
-  patients.push(newP);
-  renderPatients();
-  renderHomePatients();
-  renderSimPatientSelector();
-  closeModal('modal-patient');
-  showToast('✅ Paciente ' + nome + ' cadastrado!');
+  const newP = { userEmail: currentUser.email, nome, idade: parseInt(idade), diab: diab || 'Não informado', ferida, tel, wagner, obs, hba1c, imc, healProgress: 0, regDate, history: [{date: regDate, note:'Cadastro inicial', pct:0}] };
+  try {
+    const created = await apiCreatePatient(newP);
+    patients.push(created);
+    renderPatients();
+    renderHomePatients();
+    renderSimPatientSelector();
+    closeModal('modal-patient');
+    showToast('✅ Paciente ' + nome + ' cadastrado!');
+  } catch (e) { showAlert('pat-err', true, '❌ Falha ao salvar.'); return; }
 }
 
 async function deletePatient(id) {
