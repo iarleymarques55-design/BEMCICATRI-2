@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BemCicatri — Pomada Cicatrizante Diabética</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<!-- Leaflet.js — Mapa Interativo -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="shortcut icon" href="planta-em-crescimento.png" type="image/x-icon">
+<style>
+  /* Hero plant SVG sizing */
+  .hero-plant-svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -52%);
+    width: 200px;
+    height: 240px;
+    z-index: 2;
+    filter: drop-shadow(0 4px 16px rgba(0,180,160,0.18));
+  }
+  .hero-molecule { position: relative; }
+  /* Home tool card icons - make the emoji bigger and styled */
+  .htc-icon { font-size: 2rem; line-height: 1; margin-bottom: .5rem; }
+  /* About card icons */
+  .about-card-icon { font-size: 2rem; margin-bottom: .75rem; }
+  /* Problema icon */
+  .problema-icon { display:flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:14px; margin-bottom:.75rem; }
+  .problema-icon svg { display:block; }
+  /* Formula card jar */
+  .pf-card-title { display:flex; align-items:center; gap:.5rem; }
+  
+  /* Animações para Alerta de Complicações */
+  @keyframes slideInAlert {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes pulse-alert {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+    50% { box-shadow: 0 0 0 8px rgba(255, 107, 107, 0); }
+  }
+  
+  .complications-alert {
+    animation: slideInAlert 0.4s ease-out !important;
+  }
+  
+  .complications-alert.active {
+    animation: slideInAlert 0.4s ease-out, pulse-alert 2s infinite;
+  }
+  
+  /* Email Validation Styles */
+  .email-validation-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  
+  .email-validation-indicator.checking {
+    opacity: 1;
+    background: #fbbf24;
+    color: #fff;
+  }
+  
+  .email-validation-indicator.valid {
+    opacity: 1;
+    background: #10b981;
+    color: #fff;
+    animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  .email-validation-indicator.invalid {
+    opacity: 1;
+    background: #ef4444;
+    color: #fff;
+    animation: shake 0.4s ease-in-out;
+  }
+  
+  @keyframes popIn {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  
+  .email-validation-message {
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+    min-height: 18px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-weight: 500;
+  }
+  
+  .email-validation-message.show {
+    opacity: 1;
+  }
+  
+  .email-validation-message.valid {
+    color: #10b981;
+  }
+  
+  .email-validation-message.invalid {
+    color: #ef4444;
+  }
+  
+  .email-validation-message.warn {
+    color: #f59e0b;
+  }
+  
+  /* Buttons para validação de email */
+  .btn-xs {
+    padding: 0.25rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    height: auto !important;
+  }
+</style>
+</head>
+<body>
+
+<!-- Página inicial / apresentação do projeto -->
+<div class="page active" id="page-landing">
+  <nav class="lp-nav">
+    <div class="lp-logo">BemCi<span>catri</span></div>
+    <div class="lp-nav-links">
+      <a class="lp-nav-link" onclick="lpScrollTo('lp-problema')">Problema</a>
+      <a class="lp-nav-link" onclick="lpScrollTo('lp-projeto')">Projeto</a>
+      <a class="lp-nav-link" onclick="lpScrollTo('lp-preview')">Plataforma</a>
+      <a class="lp-nav-link" onclick="lpScrollTo('lp-sobre-nos')">Sobre</a>
+      <button class="btn btn-primary btn-sm" onclick="showPage('page-login')">Acessar →</button>
+    </div>
+    <button class="lp-nav-mobile-btn" onclick="showPage('page-login')">Entrar</button>
+  </nav>
+
+  <section class="lp-hero">
+    <div class="lp-hero-content">
+      <div class="lp-hero-badge">🏆 Projeto de Iniciação Científica · Feira de Ciências 2026</div>
+      <h1 class="lp-hero-title">Uma pomada<br><em>nascida da ciência</em><br>para quem mais precisa</h1>
+      <p class="lp-hero-sub">O BemCicatri é uma proposta científica de pomada cicatrizante à base de <strong>barbatimão</strong> — planta do Cerrado brasileiro — desenvolvida para pacientes diabéticos, frequentemente ignorados pela indústria convencional.</p>
+      <div class="lp-hero-btns">
+        <button class="btn-hero-primary" onclick="showPage('page-login')">Conheça a plataforma →</button>
+        <button class="btn-hero-outline" onclick="lpScrollTo('lp-projeto')">Conhecer o projeto</button>
+      </div>
+    </div>
+    <div class="lp-hero-visual">
+      <div class="hero-molecule">
+        <div class="mol-ring mol-ring-1"></div>
+        <div class="mol-ring mol-ring-2"></div>
+        <div class="mol-ring mol-ring-3"></div>
+        <!-- SVG barbatimão plant illustration -->
+        <svg class="hero-plant-svg" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">
+          <!-- stem -->
+          <path d="M110 240 Q108 200 105 170 Q102 140 110 100" stroke="#4a7c59" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <!-- main branches -->
+          <path d="M107 165 Q85 155 68 140 Q55 128 50 112" stroke="#5a8f6a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M108 145 Q130 133 148 118 Q162 106 166 90" stroke="#5a8f6a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M109 120 Q92 108 80 92 Q70 78 72 62" stroke="#6ba378" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M110 108 Q126 96 138 80 Q146 68 144 52" stroke="#6ba378" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- small side twigs -->
+          <path d="M108 155 Q96 148 90 138" stroke="#7ab889" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M109 132 Q120 128 126 118" stroke="#7ab889" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <!-- compound leaves left branch -->
+          <ellipse cx="50" cy="108" rx="12" ry="6" fill="#3d8b5e" opacity="0.85" transform="rotate(-30 50 108)"/>
+          <ellipse cx="40" cy="100" rx="11" ry="5.5" fill="#4a9969" opacity="0.8" transform="rotate(-45 40 100)"/>
+          <ellipse cx="58" cy="118" rx="10" ry="5" fill="#56a874" opacity="0.75" transform="rotate(-20 58 118)"/>
+          <ellipse cx="60" cy="100" rx="11" ry="5" fill="#3d8b5e" opacity="0.8" transform="rotate(20 60 100)"/>
+          <!-- compound leaves right branch -->
+          <ellipse cx="166" cy="86" rx="12" ry="6" fill="#3d8b5e" opacity="0.85" transform="rotate(35 166 86)"/>
+          <ellipse cx="158" cy="76" rx="11" ry="5.5" fill="#4a9969" opacity="0.8" transform="rotate(50 158 76)"/>
+          <ellipse cx="174" cy="96" rx="10" ry="5" fill="#56a874" opacity="0.75" transform="rotate(15 174 96)"/>
+          <!-- top branches leaves -->
+          <ellipse cx="72" cy="58" rx="11" ry="5" fill="#4a9969" opacity="0.8" transform="rotate(-40 72 58)"/>
+          <ellipse cx="62" cy="50" rx="10" ry="4.5" fill="#3d8b5e" opacity="0.75" transform="rotate(-55 62 50)"/>
+          <ellipse cx="80" cy="50" rx="10" ry="4.5" fill="#56a874" opacity="0.7" transform="rotate(-20 80 50)"/>
+          <ellipse cx="144" cy="48" rx="11" ry="5" fill="#4a9969" opacity="0.8" transform="rotate(45 144 48)"/>
+          <ellipse cx="136" cy="40" rx="10" ry="4.5" fill="#3d8b5e" opacity="0.75" transform="rotate(60 136 40)"/>
+          <ellipse cx="152" cy="40" rx="10" ry="4.5" fill="#56a874" opacity="0.7" transform="rotate(25 152 40)"/>
+          <!-- flower buds / fruits (barbatimão has small pods) -->
+          <circle cx="72" cy="62" r="3.5" fill="#00b4a0" opacity="0.7"/>
+          <circle cx="144" cy="52" r="3.5" fill="#00b4a0" opacity="0.7"/>
+          <circle cx="110" cy="98" r="3" fill="#00b4a0" opacity="0.6"/>
+          <!-- small twig leaves -->
+          <ellipse cx="90" cy="136" rx="8" ry="4" fill="#56a874" opacity="0.7" transform="rotate(-35 90 136)"/>
+          <ellipse cx="126" cy="116" rx="8" ry="4" fill="#56a874" opacity="0.7" transform="rotate(30 126 116)"/>
+          <!-- ground roots suggestion -->
+          <path d="M110 242 Q100 248 88 252 Q80 255 75 258" stroke="#7a5c3a" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <path d="M110 242 Q120 248 132 252 Q140 255 145 258" stroke="#7a5c3a" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <path d="M110 244 Q108 250 106 258" stroke="#7a5c3a" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+        <div class="mol-dot md-1">
+          <svg viewBox="0 0 28 28" width="28" height="28"><circle cx="14" cy="14" r="12" fill="#e8f9f7"/><text x="14" y="19" text-anchor="middle" font-size="14">🧬</text></svg>
+        </div>
+        <div class="mol-dot md-2">
+          <svg viewBox="0 0 28 28" width="28" height="28"><circle cx="14" cy="14" r="12" fill="#e8f9f7"/><text x="14" y="19" text-anchor="middle" font-size="14">💧</text></svg>
+        </div>
+        <div class="mol-dot md-3">
+          <svg viewBox="0 0 28 28" width="28" height="28"><circle cx="14" cy="14" r="12" fill="#e8f9f7"/><text x="14" y="19" text-anchor="middle" font-size="14">⚗️</text></svg>
+        </div>
+        <div class="mol-dot md-4">
+          <svg viewBox="0 0 28 28" width="28" height="28"><circle cx="14" cy="14" r="12" fill="#e8f9f7"/><text x="14" y="19" text-anchor="middle" font-size="14">🛡️</text></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="lp-urgency-bar">
+    <div class="urgency-item"><span class="urgency-val">16,8M</span><span class="urgency-lbl">diabéticos no Brasil</span></div>
+    <div class="urgency-div"></div>
+    <div class="urgency-item"><span class="urgency-val">26%</span><span class="urgency-lbl">desenvolvem úlceras no pé</span></div>
+    <div class="urgency-div"></div>
+    <div class="urgency-item"><span class="urgency-val">80%</span><span class="urgency-lbl">das amputações são evitáveis</span></div>
+    <div class="urgency-div"></div>
+    <div class="urgency-item"><span class="urgency-val">R$4,9bi</span><span class="urgency-lbl">custo anual ao SUS</span></div>
+  </div>
+
+  <div id="lp-problema">
+    <section class="lp-section">
+      <div class="lp-section-label">Por que este projeto existe</div>
+      <h2 class="lp-section-title">O diabetes silencia a capacidade de curar</h2>
+      <p class="lp-section-sub">Feridas comuns viram crises sérias para quem tem diabetes. A hiperglicemia compromete a imunidade, a circulação e a regeneração celular — e os produtos disponíveis raramente são formulados pensando nesse perfil.</p>
+      <div class="problema-grid">
+        <div class="problema-card">
+          <div class="problema-icon" style="background:#fef2f2;color:#dc2626">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/><path d="M18.5 2.5 22 6l-3.5 3.5"/><path d="M15 6h7"/></svg>
+          </div>
+          <h3>Hiperglicemia crônica</h3>
+          <p>O excesso de glicose no sangue prejudica a migração de neutrófilos e reduz a síntese de colágeno, atrasando todas as fases da cicatrização.</p>
+        </div>
+        <div class="problema-card">
+          <div class="problema-icon" style="background:#fff7ed;color:#ea580c">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/><path d="m21 21-4.35-4.35"/><path d="M11 8v1M11 14v1M8 11h1M14 11h1"/></svg>
+          </div>
+          <h3>Infecções oportunistas</h3>
+          <p>A imunidade comprometida favorece a colonização por bactérias como <em>Staphylococcus aureus</em>, que formam biofilme resistente.</p>
+        </div>
+        <div class="problema-card">
+          <div class="problema-icon" style="background:#fdf4ff;color:#9333ea">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </div>
+          <h3>Microangiopatia</h3>
+          <p>Vasos capilares danificados reduzem o fluxo sanguíneo local, privando a ferida de oxigênio e nutrientes essenciais.</p>
+        </div>
+        <div class="problema-card">
+          <div class="problema-icon" style="background:#f0fdf4;color:#16a34a">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+          </div>
+          <h3>Falta de soluções inclusivas</h3>
+          <p>A maioria dos produtos cicatrizantes não considera as necessidades específicas da pele diabética — mais seca, mais sensível e com menor resposta imune.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="lp-projeto" style="background:var(--navy);overflow:hidden;position:relative">
+    <div class="lp-proj-bg-pattern"></div>
+    <section class="lp-section" style="max-width:1100px;position:relative;z-index:1">
+      <div class="lp-section-label" style="color:var(--teal3)">A Proposta Científica</div>
+      <h2 class="lp-section-title" style="color:#fff">Barbatimão: da floresta para a ciência</h2>
+      <p class="lp-section-sub" style="color:rgba(255,255,255,.65)">O <em>Stryphnodendron adstringens</em> — popularmente conhecido como barbatimão — é uma planta nativa do Cerrado com extensa literatura sobre suas propriedades antimicrobianas, anti-inflamatórias e adstringentes.</p>
+      <div class="projeto-cols">
+        <div class="projeto-info">
+          <div class="projeto-feature"><div class="pf-num">01</div><div><h4>Extrato por maceração</h4><p>A casca do barbatimão foi macerada em álcool de cereais para extração dos taninos bioativos — compostos com atividade antimicrobiana e adstringente comprovada.</p></div></div>
+          <div class="projeto-feature"><div class="pf-num">02</div><div><h4>Base natural e estável</h4><p>O extrato foi incorporado a uma base de glicerina bidestilada, óleo de coco e amido de milho — sem parabenos, sem corantes, com pH compatível com a pele.</p></div></div>
+          <div class="projeto-feature"><div class="pf-num">03</div><div><h4>Cidadania & Inclusão</h4><p>O projeto propõe uma reflexão: produtos de saúde devem ser pensados para todos. Especialmente para grupos vulneráveis, como pessoas com diabetes.</p></div></div>
+          <div class="projeto-feature"><div class="pf-num">04</div><div><h4>Metodologia rigorosa</h4><p>Desenvolvido com base em revisão bibliográfica de 42+ artigos científicos — PubMed, SciELO, Google Scholar — respeitando normas éticas escolares.</p></div></div>
+        </div>
+        <div class="projeto-formula-card">
+          <div class="pf-card-title">🌿 Fórmula do BemCicatri</div>
+          <!-- Illustrated jar SVG -->
+          <div style="display:flex;justify-content:center;margin-bottom:1rem">
+            <svg viewBox="0 0 120 148" width="110" height="126" xmlns="http://www.w3.org/2000/svg">
+              <!-- jar lid -->
+              <rect x="35" y="20" width="50" height="12" rx="4" fill="#c8f0e8" stroke="#00b4a0" stroke-width="1.5"/>
+              <rect x="30" y="28" width="60" height="6" rx="3" fill="#a0dfd4"/>
+              <!-- jar body -->
+              <path d="M32 34 L28 123 Q28 130 35 130 L85 130 Q92 130 92 123 L88 34 Z" fill="rgba(200,240,232,0.35)" stroke="#00b4a0" stroke-width="1.5"/>
+              <!-- liquid fill - green tinted -->
+              <path d="M34 78 L30 123 Q30 128 37 128 L83 128 Q90 128 90 123 L86 78 Z" fill="rgba(0,180,160,0.18)"/>
+              <!-- liquid surface wave -->
+              <path d="M34 78 Q52 72 70 78 Q80 82 86 78" stroke="#00b4a0" stroke-width="1" fill="none" opacity="0.6"/>
+              <!-- leaves floating inside -->
+              <ellipse cx="55" cy="96" rx="8" ry="3.5" fill="#4a9969" opacity="0.45" transform="rotate(-15 55 96)"/>
+              <ellipse cx="70" cy="108" rx="6" ry="2.5" fill="#3d8b5e" opacity="0.4" transform="rotate(10 70 108)"/>
+              <ellipse cx="48" cy="113" rx="5" ry="2" fill="#56a874" opacity="0.35" transform="rotate(-25 48 113)"/>
+              <!-- bubbles -->
+              <circle cx="60" cy="88" r="2" fill="rgba(0,180,160,0.3)"/>
+              <circle cx="72" cy="98" r="1.5" fill="rgba(0,180,160,0.25)"/>
+              <circle cx="52" cy="103" r="1" fill="rgba(0,180,160,0.2)"/>
+              <!-- label -->
+              <rect x="36" y="56" width="48" height="18" rx="4" fill="white" opacity="0.85"/>
+              <text x="60" y="68" text-anchor="middle" font-size="7.5" font-family="Outfit, sans-serif" font-weight="700" fill="#0a2540">BemCicatri</text>
+            </svg>
+          </div>
+          <div class="pf-ingr-list">
+            <div class="pf-ingr"><span class="pf-ingr-icon">🌿</span><div><strong>Barbatimão</strong><span>Extrato — antimicrobiano e adstringente</span></div></div>
+            <div class="pf-ingr"><span class="pf-ingr-icon">💧</span><div><strong>Glicerina Bidestilada</strong><span>Hidratação e veículo</span></div></div>
+            <div class="pf-ingr"><span class="pf-ingr-icon">🥥</span><div><strong>Óleo de Coco</strong><span>Emoliente e antimicrobiano</span></div></div>
+            <div class="pf-ingr"><span class="pf-ingr-icon">⚗️</span><div><strong>Amido de Milho</strong><span>Agente estruturante da base</span></div></div>
+            <div class="pf-ingr"><span class="pf-ingr-icon">🧪</span><div><strong>Álcool de Cereais</strong><span>Solvente para extração</span></div></div>
+          </div>
+          <div class="pf-badge">🔬 Projeto acadêmico · Base em literatura científica</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="lp-preview">
+    <section class="lp-section">
+      <div class="lp-section-label">Acesse a plataforma</div>
+      <h2 class="lp-section-title">Uma experiência completa te espera</h2>
+      <p class="lp-section-sub">Após criar sua conta gratuita, você terá acesso a ferramentas interativas, conteúdo científico exclusivo e recursos pensados para avaliadores, professores e curiosos da ciência.</p>
+      <div class="preview-grid">
+        <div class="preview-card locked" onclick="showPage('page-login')">
+          <div class="preview-lock">🔒</div>
+          <div class="preview-icon">
+            <svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#e8f9f7"/><path d="M12 24l2-8 4 4 4-6 2 10" stroke="#00b4a0" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="22" cy="14" r="2" fill="#00b4a0" opacity="0.5"/></svg>
+          </div>
+          <h3>Laboratório Virtual</h3><p>Monte a fórmula escolhendo os ingredientes ativos e veja como cada um contribui para a cicatrização.</p><div class="preview-tag">Interativo</div>
+        </div>
+        <div class="preview-card locked" onclick="showPage('page-login')">
+          <div class="preview-lock">🔒</div>
+          <div class="preview-icon">
+            <svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#e8f9f7"/><circle cx="18" cy="16" r="5" stroke="#00b4a0" stroke-width="2" fill="none"/><path d="M13 27 Q18 22 23 27" stroke="#00b4a0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Simulador de Cicatrização</h3><p>Compare visualmente a evolução de uma ferida diabética com e sem tratamento ao longo de 30 dias.</p><div class="preview-tag">Animado</div>
+        </div>
+        <div class="preview-card locked" onclick="showPage('page-login')">
+          <div class="preview-lock">🔒</div>
+          <div class="preview-icon">
+            <svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#e8f9f7"/><rect x="11" y="10" width="14" height="17" rx="2" stroke="#00b4a0" stroke-width="2" fill="none"/><path d="M14 15h8M14 18h8M14 21h5" stroke="#00b4a0" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Diário de Pesquisa</h3><p>Acesse o caderno de laboratório digital com todas as 5 fases do projeto documentadas.</p><div class="preview-tag">Científico</div>
+        </div>
+        <div class="preview-card locked" onclick="showPage('page-login')">
+          <div class="preview-lock">🔒</div>
+          <div class="preview-icon">
+            <svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#e8f9f7"/><path d="M18 10 Q24 14 22 20 Q20 25 18 26 Q16 25 14 20 Q12 14 18 10Z" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.15)"/><path d="M13 18 Q18 16 23 18" stroke="#00b4a0" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Quiz Científico</h3><p>Teste seus conhecimentos sobre diabetes e cicatrização com perguntas baseadas em literatura.</p><div class="preview-tag">Educativo</div>
+        </div>
+        <div class="preview-card locked" onclick="showPage('page-login')">
+          <div class="preview-lock">🔒</div>
+          <div class="preview-icon">
+            <svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#e8f9f7"/><path d="M11 26 L11 20 L15 20 L15 26" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.2)" stroke-linejoin="round"/><path d="M16 26 L16 16 L20 16 L20 26" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.3)" stroke-linejoin="round"/><path d="M21 26 L21 12 L25 12 L25 26" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.4)" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Calculadora de Risco</h3><p>Ferramenta que estima o perfil de risco de úlceras com base em fatores clínicos relevantes.</p><div class="preview-tag">Clínico</div>
+        </div>
+        <div class="preview-card locked" onclick="showPage('page-login')">
+          <div class="preview-lock">🔒</div>
+          <div class="preview-icon">
+            <svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#e8f9f7"/><path d="M10 22 Q14 16 18 18 Q22 20 26 14" stroke="#00b4a0" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="10" cy="22" r="2" fill="#00b4a0" opacity="0.5"/><circle cx="26" cy="14" r="2" fill="#00b4a0"/></svg>
+          </div>
+          <h3>Mapa do Impacto</h3><p>Visualize o impacto do diabetes no Brasil com dados epidemiológicos reais por região.</p><div class="preview-tag">Dados</div>
+        </div>
+      </div>
+      <div class="preview-cta">
+        <button class="btn-hero-primary" onclick="showPage('page-register')">Começar gratuitamente →</button>
+        <span>ou <a onclick="showPage('page-login')" style="color:var(--teal);cursor:pointer;font-weight:600">entre com sua conta</a> se já tiver acesso</span>
+      </div>
+    </section>
+  </div>
+
+  <div id="lp-sobre-nos" style="background:var(--gray50);border-top:1px solid var(--gray200)">
+    <section class="lp-section">
+      <div class="lp-section-label">Projeto</div>
+      <h2 class="lp-section-title">Ciência como instrumento de cidadania</h2>
+      <p class="lp-section-sub">Desenvolvido na Feira de Ciências 2026 sob o tema <em>Cidadania e Convivência Democrática</em>. Mais do que propor uma pomada, propomos uma reflexão: como a ciência pode servir a quem mais precisa?</p>
+      <div class="sobrenos-grid">
+        <div class="sobrenos-card">
+          <div class="sn-icon">
+            <svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18" fill="#e8f9f7"/><circle cx="20" cy="20" r="6" stroke="#00b4a0" stroke-width="2" fill="none"/><path d="M20 8 L20 14 M20 26 L20 32 M8 20 L14 20 M26 20 L32 20" stroke="#00b4a0" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <h4>Objetivo Central</h4>
+          <p>Investigar se o extrato de barbatimão pode compor uma formulação tópica segura e potencialmente eficaz para feridas em pacientes diabéticos.</p>
+        </div>
+        <div class="sobrenos-card">
+          <div class="sn-icon">
+            <svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18" fill="#e8f9f7"/><rect x="13" y="12" width="14" height="18" rx="2" stroke="#00b4a0" stroke-width="2" fill="none"/><path d="M16 17h8M16 20h8M16 23h5" stroke="#00b4a0" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <h4>Base Metodológica</h4>
+          <p>Revisão bibliográfica sistemática. Formulação experimental. Avaliação de estabilidade física. Sem testes em humanos — respeitando normas éticas.</p>
+        </div>
+        <div class="sobrenos-card">
+          <div class="sn-icon">
+            <svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18" fill="#e8f9f7"/><path d="M14 20 Q14 14 20 14 Q26 14 26 20 Q26 26 20 28 Q14 26 14 20Z" stroke="#00b4a0" stroke-width="2" fill="rgba(0,180,160,0.1)"/><path d="M17 20 L19 22 L23 17" stroke="#00b4a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>Impacto Esperado</h4>
+          <p>Demonstrar que soluções naturais, acessíveis e inclusivas são possíveis — e que a ciência escolar pode propor respostas reais a problemas reais.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="lp-footer-cta">
+    <h2>Quer conhecer o projeto completo?</h2>
+    <p>Crie sua conta em segundos e aproveite todas as ferramentas interativas.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <button class="btn-hero-primary" onclick="showPage('page-register')">Começar gratuitamente</button>
+      <button class="btn-hero-outline" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="showPage('page-login')">Já tenho acesso</button>
+    </div>
+  </div>
+
+  <footer class="lp-footer">
+    <strong>BemCicatri®</strong> — Projeto de Iniciação Científica · Feira de Ciências 2026<br>
+    <span style="display:block;margin-top:.4rem;font-size:.78rem;opacity:.6">⚗️ Projeto acadêmico com base em revisão bibliográfica e pesquisa experimental. Não substitui orientação médica.</span>
+  </footer>
+</div>
+
+<!-- Página de login do usuário -->
+<div class="page" id="page-login">
+  <div class="auth-screen">
+    <div class="auth-panel-left auth-panel-project">
+      <div class="auth-left-logo">BemCi<span>catri</span></div>
+      <div class="auth-left-badge">🌿 Feira de Ciências 2026</div>
+      <div class="project-quotes">
+        <div class="project-quote-card active" id="pq-0"><div class="pq-icon">🌱</div><div class="pq-label">O Projeto</div><p class="pq-text">Uma pomada cicatrizante à base de <strong>barbatimão</strong> — planta nativa do Cerrado — proposta para atender pacientes diabéticos com necessidades raramente consideradas.</p></div>
+        <div class="project-quote-card" id="pq-1"><div class="pq-icon">🧪</div><div class="pq-label">A Fórmula</div><p class="pq-text">Extrato de barbatimão em base de glicerina, óleo de coco e amido de milho. Processo de <strong>maceração alcoólica</strong> para máxima extração dos taninos bioativos.</p></div>
+        <div class="project-quote-card" id="pq-2"><div class="pq-icon">⚖️</div><div class="pq-label">Cidadania</div><p class="pq-text">Nosso projeto propõe que a ciência seja um <strong>instrumento de inclusão</strong>. Produtos de saúde devem alcançar todos — especialmente quem mais precisa deles.</p></div>
+        <div class="project-quote-card" id="pq-3"><div class="pq-icon">🎯</div><div class="pq-label">O Impacto</div><p class="pq-text">Com 16,8 milhões de diabéticos no Brasil, uma solução acessível pode <strong>mudar vidas</strong> e reduzir custos bilionários ao sistema de saúde.</p></div>
+      </div>
+      <div class="pq-dots">
+        <button class="pq-dot active" onclick="goQuote(0)"></button>
+        <button class="pq-dot" onclick="goQuote(1)"></button>
+        <button class="pq-dot" onclick="goQuote(2)"></button>
+        <button class="pq-dot" onclick="goQuote(3)"></button>
+      </div>
+      <div class="auth-ingredients">
+        <div class="auth-ingr-title">Ingredientes da Fórmula</div>
+        <div class="auth-ingr-list">
+          <span class="auth-ingr-pill">🌿 Barbatimão</span>
+          <span class="auth-ingr-pill">💧 Glicerina</span>
+          <span class="auth-ingr-pill">🥥 Óleo de Coco</span>
+          <span class="auth-ingr-pill">⚗️ Amido de Milho</span>
+          <span class="auth-ingr-pill">🧪 Álcool de Cereais</span>
+        </div>
+      </div>
+    </div>
+    <div class="auth-panel-right">
+      <div class="auth-card fadeIn">
+        <div class="auth-card-logo">BemCi<span>catri</span></div>
+        <p class="auth-card-sub">Faça login para acessar a plataforma</p>
+        <div class="alert alert-error" id="login-err">E-mail ou senha incorretos. Verifique e tente novamente.</div>
+        <div class="form-group"><label class="form-label">E-mail</label><input class="form-input" type="email" id="login-email" placeholder="seu@email.com" /></div>
+        <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="login-pass" placeholder="••••••••" /></div>
+        <button class="btn btn-primary btn-block" id="login-btn" onclick="doLogin()">Entrar na Plataforma</button>
+        <div class="divider">ou</div>
+        <div class="auth-switch">Ainda não tem conta? <a onclick="showPage('page-register')">Crie seu acesso gratuito</a></div>
+        <div class="auth-switch" style="margin-top:.5rem"><a onclick="showPage('page-landing')" style="color:var(--gray400);font-size:.8rem">← Voltar à página inicial</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Página de cadastro do usuário -->
+<div class="page" id="page-register">
+  <div class="auth-screen">
+    <div class="auth-panel-left auth-panel-project">
+      <div class="auth-left-logo">BemCi<span>catri</span></div>
+      <div class="auth-left-badge">🌿 Feira de Ciências 2026</div>
+      <div class="register-project-info">
+        <div class="rpi-block"><div class="rpi-icon">🌿</div><div><div class="rpi-title">Base Natural</div><p class="rpi-text">Barbatimão (<em>Stryphnodendron adstringens</em>) — planta nativa do Cerrado com taninos de alta atividade biológica.</p></div></div>
+        <div class="rpi-block"><div class="rpi-icon">🔬</div><div><div class="rpi-title">Base Científica</div><p class="rpi-text">42+ artigos analisados. Formulação experimental com avaliação de estabilidade e pH.</p></div></div>
+        <div class="rpi-block"><div class="rpi-icon">🤝</div><div><div class="rpi-title">Impacto Social</div><p class="rpi-text">Proposta para pessoas diabéticas — um grupo frequentemente ignorado pelos produtos convencionais.</p></div></div>
+        <div class="rpi-block"><div class="rpi-icon">💡</div><div><div class="rpi-title">Objetivo</div><p class="rpi-text">Investigar uma alternativa natural, acessível e inclusiva. A ciência como instrumento de cidadania.</p></div></div>
+      </div>
+    </div>
+    <div class="auth-panel-right" style="padding:2rem 1.5rem">
+      <div class="auth-card fadeIn" style="max-width:480px">
+        <a class="auth-back-link" onclick="showPage('page-login')">← Voltar ao login</a>
+        <div class="auth-card-logo">Criar Acesso</div>
+        <p class="auth-card-sub">Preencha os dados para se cadastrar</p>
+        <div class="alert alert-error" id="reg-err">Verifique os campos e tente novamente.</div>
+        <div class="alert alert-success" id="reg-ok">✅ Conta criada! Redirecionando...</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nome</label><input class="form-input" type="text" id="reg-nome" placeholder="Seu nome" /></div>
+          <div class="form-group"><label class="form-label">Sobrenome</label><input class="form-input" type="text" id="reg-sobrenome" placeholder="Sobrenome" /></div>
+        </div>
+        <div class="form-group">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+            <label class="form-label" style="margin:0">E-mail</label>
+            <span class="email-validation-indicator" id="email-status-indicator"></span>
+          </div>
+          <input class="form-input" type="email" id="reg-email" placeholder="seu@email.com" oninput="validateEmailRealtime(this.value)" />
+          <div class="email-validation-message" id="email-validation-message"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Acesso</label>
+          <select class="form-select" id="reg-tipo">
+            <option value="">Selecione seu perfil</option>
+            <option value="Aluno">Aluno / Pesquisador</option>
+            <option value="Professor">Professor / Orientador</option>
+            <option value="Avaliador">Avaliador da Feira</option>
+            <option value="Visitante">Visitante</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" type="tel" id="reg-tel" placeholder="(00) 00000-0000" oninput="maskPhone(this)" maxlength="15" /></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="reg-pass" placeholder="Min. 8 caracteres" oninput="checkStrength(this.value)" /><div class="strength-bar"><div class="strength-seg" id="s1"></div><div class="strength-seg" id="s2"></div><div class="strength-seg" id="s3"></div><div class="strength-seg" id="s4"></div></div><div class="strength-label" id="strength-lbl">Digite uma senha</div></div>
+          <div class="form-group"><label class="form-label">Confirmar Senha</label><input class="form-input" type="password" id="reg-pass2" placeholder="Repita a senha" /></div>
+        </div>
+        <div class="checkbox-group" style="margin-bottom:1.2rem"><input type="checkbox" id="reg-terms" /><label for="reg-terms">Li e aceito os Termos de Uso e a Política de Privacidade</label></div>
+        <button class="btn btn-primary btn-block" onclick="doRegister()">Criar Minha Conta</button>
+        <div class="auth-switch" style="margin-top:1rem">Já tem conta? <a onclick="showPage('page-login')">Entre aqui</a></div>
+        <div class="auth-switch" style="margin-top:.5rem"><a onclick="showPage('page-landing')">← Voltar para o site</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Página de confirmação de código por e-mail -->
+<div class="page" id="page-confirm-email">
+  <div class="auth-screen">
+    <div class="auth-panel-left auth-panel-project">
+      <div class="auth-left-logo">BemCi<span>catri</span></div>
+      <div class="auth-left-badge">🔐 Confirmação de Conta</div>
+      <div class="register-project-info">
+        <div class="rpi-block"><div class="rpi-icon">✉️</div><div><div class="rpi-title">Código enviado</div><p class="rpi-text">Verifique seu e-mail e copie o código de confirmação enviado.</p></div></div>
+        <div class="rpi-block"><div class="rpi-icon">🖥️</div><div><div class="rpi-title">Use localmente</div><p class="rpi-text">Caso não tenha hospedado, rode o backend e use o app em localhost.</p></div></div>
+        <div class="rpi-block"><div class="rpi-icon">✅</div><div><div class="rpi-title">Conta ativada</div><p class="rpi-text">Após confirmar, você poderá entrar normalmente.</p></div></div>
+      </div>
+    </div>
+    <div class="auth-panel-right" style="padding:2rem 1.5rem">
+      <div class="auth-card fadeIn" style="max-width:480px">
+        <a class="auth-back-link" onclick="showPage('page-login')">← Voltar ao login</a>
+        <div class="auth-card-logo">Confirmar Conta</div>
+        <p class="auth-card-sub">Digite o código que você recebeu por e-mail</p>
+        <div class="alert alert-error" id="confirm-err">Código inválido ou expirado.</div>
+        <div class="alert alert-success" id="confirm-ok">✅ Conta confirmada com sucesso! Faça login.</div>
+        <div class="form-group"><label class="form-label">Código de confirmação</label><input class="form-input" type="text" id="confirm-code" placeholder="123456" maxlength="6" /></div>
+        <button class="btn btn-primary btn-block" onclick="doConfirmEmail()">Confirmar</button>
+        <div class="auth-switch" style="margin-top:1rem">Já confirmou? <a onclick="showPage('page-login')">Entrar</a></div>
+        <div class="auth-switch" style="margin-top:.5rem"><a onclick="showPage('page-landing')">← Voltar para o site</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Área privada do usuário / painel principal -->
+<div class="page" id="page-dashboard">
+  <div class="dashboard">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-text">BemCi<span>catri</span></div>
+        <div class="sidebar-logo-sub">Plataforma Científica</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Principal</div>
+        <div class="sidebar-item active" onclick="showView('view-home');closeMenu()" data-view="view-home"><span class="icon">🏠</span> Início</div>
+        <div class="sidebar-section">Ferramentas</div>
+        <div class="sidebar-item" onclick="showView('view-lab');closeMenu()" data-view="view-lab"><span class="icon">🧪</span> Laboratório Virtual</div>
+        <div class="sidebar-item" onclick="showView('view-simulador');closeMenu()" data-view="view-simulador"><span class="icon">🩺</span> Simulador</div>
+        <div class="sidebar-item" onclick="showView('view-diario');closeMenu()" data-view="view-diario"><span class="icon">📓</span> Diário de Pesquisa</div>
+        <div class="sidebar-item" onclick="showView('view-mapa');closeMenu()" data-view="view-mapa"><span class="icon">🌍</span> Mapa do Impacto</div>
+        <div class="sidebar-item" onclick="showView('view-quiz');closeMenu()" data-view="view-quiz"><span class="icon">🧠</span> Quiz Científico</div>
+        <div class="sidebar-item" onclick="showView('view-calculadora');closeMenu()" data-view="view-calculadora"><span class="icon">📊</span> Calc. de Risco</div>
+        <div class="sidebar-section">Gestão</div>
+        <div class="sidebar-item" onclick="showView('view-pacientes');closeMenu()" data-view="view-pacientes"><span class="icon">👥</span> Pacientes</div>
+        <div class="sidebar-item" onclick="showView('view-sobre');closeMenu()" data-view="view-sobre"><span class="icon">🧬</span> Sobre o Projeto</div>
+        <div class="sidebar-section">Conta</div>
+        <div class="sidebar-item" onclick="showView('view-settings');closeMenu()" data-view="view-settings"><span class="icon">⚙️</span> Configurações</div>
+        <div class="sidebar-item" onclick="doLogout()"><span class="icon">🚪</span> Sair</div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="user-chip">
+          <div class="user-avatar" id="sidebar-avatar">?</div>
+          <div><div class="user-chip-name" id="sidebar-name">Usuário</div><div class="user-chip-role" id="sidebar-role">Perfil</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMenu()"></div>
+    <div class="dash-content">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:1rem">
+          <button class="menu-toggle" onclick="openMenu()">☰</button>
+          <div class="topbar-title" id="topbar-title">Início</div>
+        </div>
+        <div class="topbar-right">
+          <div style="font-size:.82rem;font-weight:600;color:var(--navy)" id="topbar-user">Olá!</div>
+          <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sair</button>
+        </div>
+      </div>
+
+      <div class="dash-inner">
+
+        <!-- VIEW: HOME -->
+        <div class="dash-view active" id="view-home">
+          <div class="home-welcome">
+            <div class="hwb-content">
+              <h2>Bem-vindo, <span id="welcome-name">pesquisador</span>! 👋</h2>
+              <p>Explore as ferramentas científicas e mergulhe na pesquisa do BemCicatri.</p>
+            </div>
+            <div class="hwb-badge">🌿 BemCicatri · Feira 2026</div>
+          </div>
+          <div class="home-tools-grid">
+            <div class="home-tool-card teal" onclick="showView('view-lab')"><div class="htc-icon">🧪</div><div class="htc-title">Laboratório Virtual</div><div class="htc-desc">Monte a fórmula e veja como cada ativo contribui</div><div class="htc-arrow">→</div></div>
+            <div class="home-tool-card navy" onclick="showView('view-simulador')"><div class="htc-icon">🩺</div><div class="htc-title">Simulador de Cicatrização</div><div class="htc-desc">Compare a evolução com e sem tratamento</div><div class="htc-arrow">→</div></div>
+            <div class="home-tool-card gold" onclick="showView('view-quiz')"><div class="htc-icon">🧠</div><div class="htc-title">Quiz Científico</div><div class="htc-desc">Teste seus conhecimentos sobre diabetes</div><div class="htc-arrow">→</div></div>
+            <div class="home-tool-card purple" onclick="showView('view-calculadora')"><div class="htc-icon">📊</div><div class="htc-title">Calculadora de Risco</div><div class="htc-desc">Estime o risco de úlceras diabéticas</div><div class="htc-arrow">→</div></div>
+            <div class="home-tool-card green" onclick="showView('view-diario')"><div class="htc-icon">📓</div><div class="htc-title">Diário de Pesquisa</div><div class="htc-desc">5 fases documentadas do projeto</div><div class="htc-arrow">→</div></div>
+            <div class="home-tool-card red" onclick="showView('view-mapa')"><div class="htc-icon">🌍</div><div class="htc-title">Mapa do Impacto</div><div class="htc-desc">Dados epidemiológicos do Brasil</div><div class="htc-arrow">→</div></div>
+          </div>
+          <div class="home-stats-row">
+            <div class="hsr-card"><div class="hsr-val">16,8M</div><div class="hsr-lbl">Diabéticos no Brasil</div></div>
+            <div class="hsr-card"><div class="hsr-val">42+</div><div class="hsr-lbl">Artigos revisados</div></div>
+            <div class="hsr-card"><div class="hsr-val">5</div><div class="hsr-lbl">Ingredientes ativos</div></div>
+            <div class="hsr-card"><div class="hsr-val">4</div><div class="hsr-lbl">Mecanismos de ação</div></div>
+          </div>
+          <div class="home-patients-quick">
+            <div class="hpq-header"><h3>👥 Meus Pacientes <span id="hpq-count">(0)</span></h3><button class="btn btn-primary btn-sm" onclick="showView('view-pacientes')">Ver todos</button></div>
+            <div id="hpq-list"><div class="empty-state-small">Nenhum paciente cadastrado. <a onclick="showView('view-pacientes')" style="color:var(--teal);cursor:pointer">Adicionar →</a></div></div>
+          </div>
+        </div>
+
+        <!-- VIEW: LABORATÓRIO VIRTUAL (MELHORADO) -->
+        <div class="dash-view" id="view-lab">
+          <div class="page-header">
+            <div class="page-header-left"><h2>🧪 Laboratório Virtual</h2><p>Monte a fórmula do BemCicatri passo a passo e observe as reações em tempo real</p></div>
+            <button class="btn btn-ghost btn-sm" onclick="resetLab()">↺ Reiniciar experimento</button>
+          </div>
+
+          <!-- Abas do Lab -->
+          <div class="lab-tabs">
+            <button class="lab-tab active" onclick="switchLabTab(this,'lab-formulacao')">⚗️ Formulação</button>
+            <button class="lab-tab" onclick="switchLabTab(this,'lab-microscopia')">🔬 Microscopia</button>
+            <button class="lab-tab" onclick="switchLabTab(this,'lab-propriedades')">📋 Propriedades</button>
+          </div>
+
+          <!-- ABA: FORMULAÇÃO -->
+          <div class="lab-panel active" id="lab-formulacao">
+            <div class="lab-full-layout">
+
+              <!-- COLUNA ESQUERDA: bancada + frasco -->
+              <div class="lab-left-col">
+                <div class="lab-bench">
+                  <div class="lab-bench-title">🧴 Bancada de Ingredientes</div>
+                  <div class="lab-bench-subtitle">Selecione na ordem correta. Barbatimão em <strong>gramas</strong>, demais em <strong>mL</strong></div>
+                  <div class="ingredient-btns-v2" id="ingredient-btns">
+                    <div class="ingr-item" onclick="selectIngredient(this,'alcool')" data-ing="alcool">
+                      <div class="ingr-tube"><div class="ingr-liquid" style="background:linear-gradient(#9b59b6,#7d3c98);height:65%"></div></div>
+                      <div class="ingr-label">🧪 Álcool de Cereais</div>
+                      <div class="ingr-detail">Solvente extrator</div>
+                      <div class="ingr-step-badge">Passo 1</div>
+                      <div class="ingr-qty-input">
+                        <input type="number" min="0" max="100" value="0" placeholder="mL" class="qty-field" onchange="updateIngrQty('alcool', this.value); updatePHPreview()" oninput="updateIngrQty('alcool', this.value); updatePHPreview()">
+                        <span class="qty-unit">mL</span>
+                      </div>
+                    </div>
+                    <div class="ingr-item" onclick="selectIngredient(this,'barbatimao')" data-ing="barbatimao">
+                      <div class="ingr-tube ingr-powder"><div class="ingr-powder-fill" style="background:linear-gradient(135deg, #4a7c59, #2e5e38);height:75%;border-radius:2px"></div></div>
+                      <div class="ingr-label">🌿 Barbatimão (Pó)</div>
+                      <div class="ingr-detail">Ativo antimicrobiano</div>
+                      <div class="ingr-step-badge">Passo 2</div>
+                      <div class="ingr-qty-input">
+                        <input type="number" min="0" max="50" value="0" placeholder="g" class="qty-field" onchange="updateIngrQty('barbatimao', this.value); updatePHPreview()" oninput="updateIngrQty('barbatimao', this.value); updatePHPreview()">
+                        <span class="qty-unit">g</span>
+                      </div>
+                    </div>
+                    <div class="ingr-item" onclick="selectIngredient(this,'glicerina')" data-ing="glicerina">
+                      <div class="ingr-tube"><div class="ingr-liquid" style="background:linear-gradient(#5ba4c7,#2980b9);height:70%"></div></div>
+                      <div class="ingr-label">💧 Glicerina</div>
+                      <div class="ingr-detail">Hidratante e veiculo</div>
+                      <div class="ingr-step-badge">Passo 3</div>
+                      <div class="ingr-qty-input">
+                        <input type="number" min="0" max="100" value="0" placeholder="mL" class="qty-field" onchange="updateIngrQty('glicerina', this.value); updatePHPreview()" oninput="updateIngrQty('glicerina', this.value); updatePHPreview()">
+                        <span class="qty-unit">mL</span>
+                      </div>
+                    </div>
+                    <div class="ingr-item" onclick="selectIngredient(this,'coco')" data-ing="coco">
+                      <div class="ingr-tube"><div class="ingr-liquid" style="background:linear-gradient(#c9a84c,#a07c2a);height:60%"></div></div>
+                      <div class="ingr-label">🥥 Óleo de Coco</div>
+                      <div class="ingr-detail">Emoliente e protetor</div>
+                      <div class="ingr-step-badge">Passo 4</div>
+                      <div class="ingr-qty-input">
+                        <input type="number" min="0" max="100" value="0" placeholder="mL" class="qty-field" onchange="updateIngrQty('coco', this.value); updatePHPreview()" oninput="updateIngrQty('coco', this.value); updatePHPreview()">
+                        <span class="qty-unit">mL</span>
+                      </div>
+                    </div>
+                    <div class="ingr-item" onclick="selectIngredient(this,'amido')" data-ing="amido">
+                      <div class="ingr-tube ingr-powder"><div class="ingr-powder-fill" style="background:linear-gradient(135deg, #d4a574, #a67c52);height:75%;border-radius:2px"></div></div>
+                      <div class="ingr-label">⚗️ Amido de Milho (Pó)</div>
+                      <div class="ingr-detail">Texturizante gel-creme</div>
+                      <div class="ingr-step-badge">Passo 5</div>
+                      <div class="ingr-qty-input">
+                        <input type="number" min="0" max="50" value="0" placeholder="g" class="qty-field" onchange="updateIngrQty('amido', this.value); updatePHPreview()" oninput="updateIngrQty('amido', this.value); updatePHPreview()">
+                        <span class="qty-unit">g</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="lab-actions">
+                    <button class="btn btn-primary" onclick="mixFormula()">⚗️ Adicionar ao Frasco</button>
+                    <div class="lab-ph-display">
+                      <span class="ph-label">pH:</span>
+                      <span class="ph-val" id="lab-ph">—</span>
+                      <div class="ph-bar-wrap"><div class="ph-bar-fill" id="ph-bar-fill"></div></div>
+                    </div>
+                  </div>
+                  <div class="lab-ph-hint" id="lab-ph-hint">pH ideal: 6,5–7,5</div>
+                </div>
+
+                <!-- Frasco + Score -->
+                <div class="lab-jar-row">
+                  <div class="lab-jar-v2" style="margin-top: 24px;">
+                    <div class="jar-body-v2">
+                      <div class="jar-bubbles" id="jar-bubbles"></div>
+                      <div class="jar-liquid-v2" id="jar-liquid"></div>
+                      <div class="jar-label-v2">BemCicatri</div>
+                      <div class="jar-temp" id="jar-temp">25°C</div>
+                    </div>
+                  </div>
+                  <div class="lab-jar-info">
+                    <div class="lab-score-display">
+                      <div class="lab-score-ring" id="lab-score-ring">
+                        <svg viewBox="0 0 80 80" width="80" height="80">
+                          <circle cx="40" cy="40" r="32" fill="none" stroke="#EFF2F5" stroke-width="8"/>
+                          <circle id="lab-score-arc" cx="40" cy="40" r="32" fill="none" stroke="#00B4A0" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 201" transform="rotate(-90 40 40)"/>
+                        </svg>
+                        <div class="lab-score-val" id="lab-score-val">0%</div>
+                      </div>
+                      <div class="lab-score-lbl">Eficácia</div>
+                    </div>
+                    <!-- Checklist de passos -->
+                    <div class="lab-checklist" id="lab-checklist">
+                      <div class="lc-item" id="lc-alcool"><span class="lc-dot"></span><span class="lc-name">Álcool de Cereais</span></div>
+                      <div class="lc-item" id="lc-barbatimao"><span class="lc-dot"></span><span class="lc-name">Barbatimão</span></div>
+                      <div class="lc-item" id="lc-glicerina"><span class="lc-dot"></span><span class="lc-name">Glicerina</span></div>
+                      <div class="lc-item" id="lc-coco"><span class="lc-dot"></span><span class="lc-name">Óleo de Coco</span></div>
+                      <div class="lc-item" id="lc-amido"><span class="lc-dot"></span><span class="lc-name">Amido de Milho</span></div>
+                    </div>
+                  </div>
+                  <div class="lab-result-info" id="lab-result-info">
+                    <p class="lab-empty-msg">Selecione ingredientes e clique em<br><strong>Adicionar ao Frasco</strong> para ver o resultado!</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- COLUNA DIREITA: painel científico -->
+              <div class="lab-right-col">
+
+                <!-- Processo de fabricação -->
+                <div class="lab-process-card">
+                  <div class="lpc-title">🔬 Processo de Fabricação</div>
+                  <div class="lab-process-steps">
+                    <div class="lps-item" id="lps-1">
+                      <div class="lps-num">1</div>
+                      <div class="lps-content">
+                        <div class="lps-name">Maceração</div>
+                        <div class="lps-desc">Pó de casca de barbatimão (em gramas) imerso em álcool de cereais por <strong>7 dias</strong> a 25°C para extração dos taninos bioativos</div>
+                      </div>
+                    </div>
+                    <div class="lps-arrow">↓</div>
+                    <div class="lps-item" id="lps-2">
+                      <div class="lps-num">2</div>
+                      <div class="lps-content">
+                        <div class="lps-name">Filtragem</div>
+                        <div class="lps-desc">O extrato bruto é filtrado em papel de filtro para remover partículas sólidas</div>
+                      </div>
+                    </div>
+                    <div class="lps-arrow">↓</div>
+                    <div class="lps-item" id="lps-3">
+                      <div class="lps-num">3</div>
+                      <div class="lps-content">
+                        <div class="lps-name">Incorporação da Base</div>
+                        <div class="lps-desc">Glicerina + óleo de coco + amido de milho misturados até formar gel-creme homogêneo</div>
+                      </div>
+                    </div>
+                    <div class="lps-arrow">↓</div>
+                    <div class="lps-item" id="lps-4">
+                      <div class="lps-num">4</div>
+                      <div class="lps-content">
+                        <div class="lps-name">Ajuste de pH</div>
+                        <div class="lps-desc">pH ajustado para <strong>6,5–7,0</strong> — compatível com a pele humana (pH 4,5–7,0)</div>
+                      </div>
+                    </div>
+                    <div class="lps-arrow">↓</div>
+                    <div class="lps-item" id="lps-5">
+                      <div class="lps-num">5</div>
+                      <div class="lps-content">
+                        <div class="lps-name">Controle de Qualidade</div>
+                        <div class="lps-desc">Avaliação de cor, odor, textura e teste Kirby-Bauer — halo de inibição de <strong>16 mm</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card de ativo selecionado -->
+                <div class="lab-active-info-card" id="lab-active-info-card">
+                  <div class="laic-empty">
+                    <div class="laic-icon">👆</div>
+                    <div class="laic-msg">Clique em um ingrediente para ver informações detalhadas</div>
+                  </div>
+                </div>
+
+                <!-- Estabilidade -->
+                <div class="lab-stability-card">
+                  <div class="lsc-title">📊 Estabilidade da Fórmula</div>
+                  <div class="stability-bars">
+                    <div class="stab-row">
+                      <span class="stab-lbl">Aparência</span>
+                      <div class="stab-bar"><div class="stab-fill" style="width:95%;background:#22c55e"></div></div>
+                      <span class="stab-val">95%</span>
+                    </div>
+                    <div class="stab-row">
+                      <span class="stab-lbl">Odor</span>
+                      <div class="stab-bar"><div class="stab-fill" style="width:90%;background:#22c55e"></div></div>
+                      <span class="stab-val">90%</span>
+                    </div>
+                    <div class="stab-row">
+                      <span class="stab-lbl">pH (após 90d)</span>
+                      <div class="stab-bar"><div class="stab-fill" style="width:92%;background:#22c55e"></div></div>
+                      <span class="stab-val">92%</span>
+                    </div>
+                    <div class="stab-row">
+                      <span class="stab-lbl">Textura</span>
+                      <div class="stab-bar"><div class="stab-fill" style="width:88%;background:#22c55e"></div></div>
+                      <span class="stab-val">88%</span>
+                    </div>
+                  </div>
+                  <div class="lsc-note">Testes realizados aos 30, 60 e 90 dias · Temperatura ambiente (25°C)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA: MICROSCOPIA VIRTUAL AVANÇADA -->
+          <div class="lab-panel" id="lab-microscopia">
+            
+            <!-- Seletor de Paciente -->
+            <div class="micro-patient-selector">
+              <div class="mps-title">👤 Selecione um Paciente para Análise Microscópica</div>
+              <div class="mps-cards" id="mps-cards">
+                <!-- Gerado via JS -->
+              </div>
+            </div>
+
+            <!-- Visualização ativa do paciente -->
+            <div class="micro-patient-info" id="micro-patient-info" style="display:none">
+              <div class="micro-pp-header">
+                <div style="display:flex;align-items:center;gap:1rem">
+                  <div class="micro-pp-avatar" id="micro-pp-avatar">—</div>
+                  <div>
+                    <div class="micro-pp-name" id="micro-pp-name">—</div>
+                    <div class="micro-pp-details" id="micro-pp-details">—</div>
+                  </div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="clearMicroPatient()" style="font-size:.75rem">Trocar paciente</button>
+              </div>
+              <!-- Informações de simulação (se disponíveis) -->
+              <div id="micro-simulation-info" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem;margin:0.75rem 0;font-size:.8rem;color:#166534;display:none"></div>
+            </div>
+
+            <!-- Microscópio (bloqueado até escolher paciente) -->
+            <div id="micro-body" class="micro-body-locked">
+              <div class="micro-lock-overlay" id="micro-lock-overlay">
+                <div class="micro-lock-msg">👆 Selecione um paciente acima para visualizar a análise microscópica</div>
+              </div>
+
+              <div class="microscope-layout-v2">
+                <!-- Coluna esquerda: SEM TRATAMENTO -->
+                <div class="micro-comparison-col">
+                  <div class="micro-card-header danger">
+                    <span class="micro-card-badge bad">Controle</span>
+                    <div class="micro-card-title">❌ Sem Tratamento</div>
+                  </div>
+                  <div class="microscope-view-wrap">
+                    <div class="microscope-border">
+                      <div class="microscope-lens"></div>
+                      <canvas id="micro-canvas-before" width="360" height="280" style="width:100%;height:100%;display:block"></canvas>
+                      <div class="micro-overlay-info" id="micro-overlay-before" style="position:absolute;top:8px;left:8px;z-index:10;background:rgba(224,82,82,0.9);color:white;padding:6px 10px;border-radius:6px;font-size:0.75rem;font-weight:600">
+                        Biofilme em Progresso
+                      </div>
+                    </div>
+                  </div>
+                  <div class="micro-realtime">
+                    <div class="mrt-title">📊 Estado da Ferida</div>
+                    <div class="mrt-row"><span>Densidade bact.</span><div class="mrt-bar-wrap"><div class="mrt-bar-fill" id="mrt-bact-before" style="width:85%;background:#e05252"></div></div><span id="mrt-bact-before-val">85%</span></div>
+                    <div class="mrt-row"><span>Biofilme</span><div class="mrt-bar-wrap"><div class="mrt-bar-fill" id="mrt-biofilm-before" style="width:80%;background:#f59e0b"></div></div><span id="mrt-biofilm-before-val">80%</span></div>
+                    <div class="mrt-row"><span>Cicatrização</span><div class="mrt-bar-wrap"><div class="mrt-bar-fill" id="mrt-heal-before" style="width:5%;background:#22c55e"></div></div><span id="mrt-heal-before-val">5%</span></div>
+                  </div>
+                  <div class="micro-status-box bad-status">
+                    <strong>Diagnóstico:</strong> Infecção ativa. Biofilme bacteriano bloqueando cicatrização.
+                  </div>
+                </div>
+
+                <!-- Coluna central: VS -->
+                <div class="micro-vs-divider">
+                  <div class="vs-circle">VS</div>
+                </div>
+
+                <!-- Coluna direita: COM TRATAMENTO -->
+                <div class="micro-comparison-col">
+                  <div class="micro-card-header featured">
+                    <span class="micro-card-badge good">BemCicatri</span>
+                    <div class="micro-card-title">✅ Com BemCicatri</div>
+                  </div>
+                  <div class="microscope-view-wrap">
+                    <div class="microscope-border">
+                      <div class="microscope-lens"></div>
+                      <canvas id="micro-canvas-after" width="360" height="280" style="width:100%;height:100%;display:block"></canvas>
+                      <div class="micro-overlay-info" id="micro-overlay-after" style="position:absolute;top:8px;left:8px;z-index:10;background:rgba(34,197,94,0.9);color:white;padding:6px 10px;border-radius:6px;font-size:0.75rem;font-weight:600">
+                        Controle Bacteriano
+                      </div>
+                    </div>
+                  </div>
+                  <div class="micro-realtime">
+                    <div class="mrt-title">📊 Estado da Ferida</div>
+                    <div class="mrt-row"><span>Densidade bact.</span><div class="mrt-bar-wrap"><div class="mrt-bar-fill" id="mrt-bact-after" style="width:20%;background:#e05252"></div></div><span id="mrt-bact-after-val">20%</span></div>
+                    <div class="mrt-row"><span>Biofilme</span><div class="mrt-bar-wrap"><div class="mrt-bar-fill" id="mrt-biofilm-after" style="width:15%;background:#f59e0b"></div></div><span id="mrt-biofilm-after-val">15%</span></div>
+                    <div class="mrt-row"><span>Cicatrização</span><div class="mrt-bar-wrap"><div class="mrt-bar-fill" id="mrt-heal-after" style="width:65%;background:#22c55e"></div></div><span id="mrt-heal-after-val">65%</span></div>
+                  </div>
+                  <div class="micro-status-box good-status">
+                    <strong>Diagnóstico:</strong> Controle bacteriano. Ambiente favorável à cicatrização.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Legenda e explicação -->
+            <div class="micro-legend-card">
+              <h4>🔬 O que você está vendo</h4>
+              <div class="micro-legend">
+                <div class="ml-item"><div class="ml-dot cell"></div><span><strong>Queratinócitos</strong> — células epiteliais da pele</span></div>
+                <div class="ml-item"><div class="ml-dot bacteria"></div><span><strong><em>S. aureus</em></strong> — bactéria oportunista (redonda/roxa)</span></div>
+                <div class="ml-item"><div class="ml-dot tannin"></div><span><strong>Taninos</strong> — moléculas de barbatimão (verdes/azuis)</span></div>
+                <div class="ml-item"><div class="ml-dot neutro"></div><span><strong>Neutrófilos</strong> — glóbulos brancos (células de defesa)</span></div>
+              </div>
+              <div class="micro-explanation-card">
+                <p><strong>Mecanismo de Ação:</strong> Os taninos do barbatimão <em>precipitam proteínas</em> da membrana bacteriana, desativando o metabolismo de <em>S. aureus</em> e impedindo a formação do biofilme. Com menos bactérias, neutrófilos conseguem atuar e a cicatrização retoma.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA: PROPRIEDADES -->
+          <div class="lab-panel" id="lab-propriedades">
+            <div class="lab-table-card">
+              <h3>📋 Propriedades Científicas dos Ingredientes</h3>
+              <div style="overflow-x:auto">
+                <table class="lab-table-v2">
+                  <thead><tr><th>Ingrediente</th><th>Função</th><th>Propriedade Principal</th><th>Mecanismo</th><th>Base Científica</th></tr></thead>
+                  <tbody>
+                    <tr class="tr-highlight">
+                      <td><span class="ingr-tag green">🌿 Barbatimão</span></td>
+                      <td><span class="func-badge primary">Ativo Principal</span></td>
+                      <td>Antimicrobiano & Adstringente</td>
+                      <td>Taninos precipitam proteínas bacterianas, inibindo <em>S. aureus</em> e outros patógenos</td>
+                      <td><small>Lopes et al. (2016) — antibacterial activity of <em>S. adstringens</em></small></td>
+                    </tr>
+                    <tr>
+                      <td><span class="ingr-tag blue">💧 Glicerina</span></td>
+                      <td><span class="func-badge secondary">Veículo</span></td>
+                      <td>Umectante & Hidratante</td>
+                      <td>Mantém microambiente úmido ideal para migração de queratinócitos e fibroblastos</td>
+                      <td><small>Fluhr et al. (2008) — Glycerol and skin barrier function</small></td>
+                    </tr>
+                    <tr>
+                      <td><span class="ingr-tag gold">🥥 Óleo de Coco</span></td>
+                      <td><span class="func-badge secondary">Emoliente</span></td>
+                      <td>Antimicrobiano complementar</td>
+                      <td>Ácido láurico disrompe membrana de fungos e bactérias; reduz TEWL cutâneo</td>
+                      <td><small>Evangelista et al. (2014) — coconut oil antimicrobial</small></td>
+                    </tr>
+                    <tr>
+                      <td><span class="ingr-tag brown">⚗️ Amido de Milho</span></td>
+                      <td><span class="func-badge tertiary">Estruturante</span></td>
+                      <td>Textura & Consistência</td>
+                      <td>Espessante biocompatível que garante viscosidade gel-creme estável para aplicação</td>
+                      <td><small>Rowe et al. (2009) — Handbook of Pharmaceutical Excipients</small></td>
+                    </tr>
+                    <tr>
+                      <td><span class="ingr-tag purple">🧪 Álcool de Cereais</span></td>
+                      <td><span class="func-badge tertiary">Solvente</span></td>
+                      <td>Extração de compostos</td>
+                      <td>Maximiza a extração de taninos e flavonoides por maceração — 7 dias a 25°C</td>
+                      <td><small>Bruneton (1999) — Pharmacognosy, Phytochemistry, Medicinal Plants</small></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!-- Parâmetros físico-químicos -->
+            <div class="lab-physico-card">
+              <h4>📊 Parâmetros Físico-Químicos — Formulação BemCicatri</h4>
+              <div class="physico-grid">
+                <div class="physico-item"><div class="physico-icon">🧪</div><div class="physico-val">6,5–7,0</div><div class="physico-lbl">pH (compatível com pele)</div></div>
+                <div class="physico-item"><div class="physico-icon">🌡️</div><div class="physico-val">90 dias</div><div class="physico-lbl">Estabilidade à 25°C</div></div>
+                <div class="physico-item"><div class="physico-icon">🔬</div><div class="physico-val">16 mm</div><div class="physico-lbl">Halo de inibição (Kirby-Bauer)</div></div>
+                <div class="physico-item"><div class="physico-icon">💧</div><div class="physico-val">Homogênea</div><div class="physico-lbl">Textura & aparência</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: SIMULADOR (MELHORADO) -->
+        <div class="dash-view" id="view-simulador">
+          <div class="page-header">
+            <div class="page-header-left"><h2>🩺 Simulador de Cicatrização</h2><p>Simule a evolução realista de uma ferida diabética com e sem BemCicatri — 30 dias de acompanhamento</p></div>
+          </div>
+
+          <!-- Seletor de Paciente -->
+          <div class="sim-patient-selector">
+            <div class="sps-title">👤 Escolha o Perfil do Paciente</div>
+            <div class="sps-cards" id="sps-cards">
+              <!-- Gerado via JS -->
+            </div>
+          </div>
+
+          <!-- Perfil ativo do paciente simulado -->
+          <div class="sim-patient-profile" id="sim-patient-profile" style="display:none">
+            <div class="sim-pp-avatar" id="sim-pp-avatar">—</div>
+            <div class="sim-pp-info">
+              <div class="sim-pp-name" id="sim-pp-name">—</div>
+              <div class="sim-pp-tags" id="sim-pp-tags"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <div class="sim-pp-risk">
+                <div class="sim-pp-risk-label">Risco</div>
+                <div class="sim-pp-risk-val" id="sim-pp-risk-val">—</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="clearSimPatient()" style="font-size:.75rem">Trocar</button>
+            </div>
+          </div>
+
+          <!-- Simulador (bloqueado até escolher paciente) -->
+          <div id="sim-body" class="sim-body-locked">
+            <div class="sim-lock-overlay" id="sim-lock-overlay">
+              <div class="sim-lock-msg">👆 Selecione um paciente acima para iniciar a simulação</div>
+            </div>
+          <!-- Alerta de Complicações -->
+          <div id="complications-alert" class="complications-alert" style="display:none;background:linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);border:2px solid #ff5252;border-radius:12px;padding:14px 16px;margin-bottom:16px;color:#fff;box-shadow:0 4px 24px rgba(255, 107, 107, 0.25);font-weight:500;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="font-size:20px;line-height:1;margin-top:2px;">⚠️</div>
+              <div style="flex:1;">
+                <div style="font-weight:bold;font-size:14px;margin-bottom:4px;text-shadow:0 1px 2px rgba(0,0,0,0.1);">COMPLICAÇÃO DETECTADA</div>
+                <div id="complications-message" style="font-size:13px;opacity:0.95;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="sim-controls-v2">
+            <div class="sim-day-display">
+              <div class="sim-day-num" id="sim-day-label">1</div>
+              <div class="sim-day-unit">dia</div>
+            </div>
+            <div class="sim-slider-wrap">
+              <input type="range" min="1" max="30" value="1" id="sim-slider" oninput="updateSimulator(this.value)" class="sim-slider-v2" />
+              <div class="sim-days-markers"><span>Dia 1</span><span>Dia 7</span><span>Dia 14</span><span>Dia 21</span><span>Dia 30</span></div>
+            </div>
+            <div class="sim-btns-v2" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+              <button class="sim-btn-play" onclick="simAutoPlay()" id="sim-play-btn">▶ Reproduzir</button>
+              <button class="sim-btn-reset" onclick="simReset()">↺</button>
+              <div id="sim-save-btn-container" style="display:flex;gap:0.5rem"></div>
+            </div>
+          </div>
+
+          <!-- Fase atual -->
+          <div class="sim-phase-indicator" id="sim-phase-indicator">
+            <div class="sim-phase-dot phase-inflamacao active" id="ph-inflamacao"></div>
+            <div class="sim-phase-line"></div>
+            <div class="sim-phase-dot phase-proliferacao" id="ph-proliferacao"></div>
+            <div class="sim-phase-line"></div>
+            <div class="sim-phase-dot phase-remodelacao" id="ph-remodelacao"></div>
+            <div class="sim-phase-labels">
+              <span>Fase Inflamatória<br><small>Dia 1–7</small></span>
+              <span>Fase Proliferativa<br><small>Dia 8–21</small></span>
+              <span>Remodelação<br><small>Dia 22–30</small></span>
+            </div>
+          </div>
+
+          <!-- Nota de eficácia do paciente -->
+          <div class="sim-efficacy-note" id="sim-efficacy-note" style="display:none"></div>
+
+          <!-- Comparação visual -->
+          <div class="sim-comparison-v2">
+            <!-- Sem tratamento -->
+            <div class="sim-card-v2 danger">
+              <div class="sim-card-header-v2">
+                <div class="sim-card-title-v2">❌ Sem Tratamento</div>
+              </div>
+              <div class="sim-visual-area">
+                <div class="sim-skin-layer" id="skin-notreated">
+                  <div class="skin-bg"></div>
+                  <div class="wound-v2" id="wound-v2-notreated">
+                    <div class="wound-core" id="wcore-notreated"></div>
+                    <div class="wound-infection-ring" id="infect-ring"></div>
+                    <div class="wound-necrosis" id="necrosis-zone"></div>
+                  </div>
+                  <div class="bacteria-dots" id="bacteria-dots"></div>
+                </div>
+                <div class="sim-tissue-label" id="tissue-label-notreated">Tecido inflamado</div>
+              </div>
+              <div class="sim-metrics-v2">
+                <div class="sim-metric">
+                  <span class="sim-metric-label">Cicatrização</span>
+                  <div class="sim-bar-v2"><div class="sim-bar-fill-v2 bad" id="bar-notreated" style="width:5%"></div></div>
+                  <span class="sim-metric-val bad-txt" id="pct-notreated">5%</span>
+                </div>
+                <div class="sim-metric">
+                  <span class="sim-metric-label">Infecção</span>
+                  <div class="sim-bar-v2"><div class="sim-bar-fill-v2 danger-bar" id="infect-bar" style="width:85%"></div></div>
+                  <span class="sim-metric-val danger-txt" id="infect-pct">85%</span>
+                </div>
+              </div>
+              <div class="sim-status-v2 bad-status" id="status-notreated">Ferida aberta — risco de infecção alto</div>
+            </div>
+
+            <!-- VS divider -->
+            <div class="sim-vs-divider">
+              <div class="vs-circle">VS</div>
+              <div class="sim-gap-indicator" id="sim-gap">
+                <div class="gap-val" id="gap-val">+5%</div>
+                <div class="gap-lbl">diferença</div>
+              </div>
+            </div>
+
+            <!-- Com BemCicatri -->
+            <div class="sim-card-v2 featured-v2">
+              <div class="sim-card-header-v2">
+                <div class="sim-card-title-v2">✅ Com BemCicatri</div>
+              </div>
+              <div class="sim-visual-area">
+                <div class="sim-skin-layer" id="skin-treated">
+                  <div class="skin-bg healthy"></div>
+                  <div class="wound-v2" id="wound-v2-treated">
+                    <div class="wound-core" id="wcore-treated"></div>
+                    <div class="granulation-ring" id="gran-ring"></div>
+                  </div>
+                  <div class="healing-glow" id="healing-glow"></div>
+                </div>
+                <div class="sim-tissue-label" id="tissue-label-treated">Tecido em recuperação</div>
+              </div>
+              <div class="sim-metrics-v2">
+                <div class="sim-metric">
+                  <span class="sim-metric-label">Cicatrização</span>
+                  <div class="sim-bar-v2"><div class="sim-bar-fill-v2 good" id="bar-treated" style="width:10%"></div></div>
+                  <span class="sim-metric-val good-txt" id="pct-treated">10%</span>
+                </div>
+                <div class="sim-metric">
+                  <span class="sim-metric-label">Controle bact.</span>
+                  <div class="sim-bar-v2"><div class="sim-bar-fill-v2 teal-bar" id="bact-control-bar" style="width:40%"></div></div>
+                  <span class="sim-metric-val teal-txt" id="bact-pct">40%</span>
+                </div>
+                <div class="sim-metric">
+                  <span class="sim-metric-label">Vascularização</span>
+                  <div class="sim-bar-v2"><div class="sim-bar-fill-v2 good" id="vascularization-bar" style="width:35%"></div></div>
+                  <span class="sim-metric-val good-txt" id="vascularization-val">35%</span>
+                </div>
+              </div>
+              <div style="padding: 0.75rem 0; border-top: 1px solid var(--gray200); margin-top: 0.75rem">
+                <span class="sim-metric-label" style="font-size: 0.75rem; color: var(--gray500)">🦠 Microbiota:</span>
+                <span id="bacteria-species-label" style="font-size: 0.8rem; color: var(--gray600); display: block; margin-top: 0.25rem">S. aureus (70%) + P. aeruginosa (20%)</span>
+              </div>
+              <div class="sim-status-v2 good-status" id="status-treated">Tratamento iniciado</div>
+            </div>
+          </div>
+
+          </div><!-- /sim-body -->
+
+          <!-- Gráfico de evolução -->
+          <div class="sim-chart-card">
+            <h4>📈 Evolução comparativa — Dia <span id="sim-chart-day">1</span></h4>
+            <div class="sim-chart-wrap">
+              <svg id="sim-chart-svg" viewBox="0 0 520 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+                <!-- Grid lines -->
+                <line x1="40" y1="10" x2="510" y2="10" stroke="#EFF2F5" stroke-width="1"/>
+                <line x1="40" y1="40" x2="510" y2="40" stroke="#EFF2F5" stroke-width="1"/>
+                <line x1="40" y1="70" x2="510" y2="70" stroke="#EFF2F5" stroke-width="1"/>
+                <line x1="40" y1="100" x2="510" y2="100" stroke="#EFF2F5" stroke-width="1"/>
+                <!-- Y axis labels -->
+                <text x="35" y="13" font-size="8" fill="#8A96A8" text-anchor="end">100%</text>
+                <text x="35" y="43" font-size="8" fill="#8A96A8" text-anchor="end">75%</text>
+                <text x="35" y="73" font-size="8" fill="#8A96A8" text-anchor="end">50%</text>
+                <text x="35" y="103" font-size="8" fill="#8A96A8" text-anchor="end">25%</text>
+                <!-- BemCicatri line (teal) -->
+                <polyline id="chart-treated-line" points="40,91 57.8,72 75.7,54 93.5,35 111.3,17 129.2,10 147,10 164.8,10 182.7,10 200.5,10 218.3,10 236.2,10 254,10 271.8,10 289.7,10 307.5,10 325.3,10 343.2,10 361,10 378.8,10 396.7,10 414.5,10 432.3,10 450.2,10 468,10 485.8,10 503.7,10 510,10" fill="none" stroke="#00B4A0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- No-treatment line (red) -->
+                <polyline id="chart-notreated-line" points="40,95 57.8,94 75.7,95 93.5,93 111.3,91 129.2,92 147,91 164.8,90 182.7,90 200.5,89 218.3,88 236.2,88 254,87 271.8,86 289.7,85 307.5,84 325.3,84 343.2,83 361,83 378.8,82 396.7,82 414.5,82 432.3,81 450.2,81 468,81 485.8,80 503.7,80 510,80" fill="none" stroke="#E05252" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Current day marker -->
+                <line id="chart-day-line" x1="40" y1="5" x2="40" y2="110" stroke="#0B1F3A" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+                <circle id="chart-day-dot-t" cx="40" cy="91" r="4" fill="#00B4A0"/>
+                <circle id="chart-day-dot-n" cx="40" cy="95" r="4" fill="#E05252"/>
+                </svg>
+              <!-- Chart legend below the SVG -->
+              <div style="display:flex;gap:1.5rem;justify-content:center;margin-top:.75rem;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <div style="width:28px;height:4px;border-radius:2px;background:#00B4A0;flex-shrink:0"></div>
+                  <span style="font-size:.82rem;font-weight:600;color:#0B1F3A">Com BemCicatri</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <div style="width:28px;height:4px;border-radius:2px;background:#E05252;flex-shrink:0"></div>
+                  <span style="font-size:.82rem;font-weight:600;color:#0B1F3A">Sem tratamento</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-legend-card"><h4>📌 Base científica</h4><p>Simulação baseada em parâmetros da literatura científica sobre cicatrização em pacientes diabéticos com úlceras Wagner Grau 2. Os valores representam estimativas médias de eficácia de formulações com taninos vegetais. <em>Ref: Singh et al. (2013); Lopes et al. (2016).</em></p></div>
+
+          <!-- MATRIZ DE COMPARAÇÃO CLÍNICA -->
+          <div class="sim-legend-card">
+            <h4>📊 Matriz de Importância Clínica (Dia <span id="matriz-day">1</span>)</h4>
+            <table style="width:100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.75rem">
+              <thead>
+                <tr style="background: var(--gray100); border-bottom: 2px solid var(--gray300)">
+                  <th style="padding: 0.5rem; text-align: left; font-weight: 700">Fator Clínico</th>
+                  <th style="padding: 0.5rem; text-align: center; color: #ef4444">Sem Trat.</th>
+                  <th style="padding: 0.5rem; text-align: center; color: #00b4a0">Com BemCicatri</th>
+                  <th style="padding: 0.5rem; text-align: center; color: #22c55e">Diferença</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--gray200)">
+                  <td style="padding: 0.5rem">Carga Bacteriana</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600" id="matriz-bact-nt">88%</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600; color: #00b4a0" id="matriz-bact-t">40%</td>
+                  <td style="padding: 0.5rem; text-align: center; color: #22c55e; font-weight: 700" id="matriz-bact-diff">-48%</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--gray200)">
+                  <td style="padding: 0.5rem">Cicatrização (Heal)</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600" id="matriz-heal-nt">5%</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600; color: #00b4a0" id="matriz-heal-t">10%</td>
+                  <td style="padding: 0.5rem; text-align: center; color: #22c55e; font-weight: 700" id="matriz-heal-diff">+5%</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--gray200)">
+                  <td style="padding: 0.5rem">Vascularização (Perfusão)</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600" id="matriz-vasc-nt">25%</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600; color: #00b4a0" id="matriz-vasc-t">35%</td>
+                  <td style="padding: 0.5rem; text-align: center; color: #22c55e; font-weight: 700" id="matriz-vasc-diff">+10%</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.5rem">Tamanho da Lesão</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600" id="matriz-size-nt">85px</td>
+                  <td style="padding: 0.5rem; text-align: center; font-weight: 600; color: #00b4a0" id="matriz-size-t">75px</td>
+                  <td style="padding: 0.5rem; text-align: center; color: #22c55e; font-weight: 700" id="matriz-size-diff">-10px</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW: DIÁRIO -->
+        <div class="dash-view" id="view-diario">
+          <div class="page-header">
+            <div class="page-header-left"><h2>📓 Diário de Pesquisa</h2><p>Caderno de laboratório digital — todas as 5 fases do projeto documentadas</p></div>
+          </div>
+          <div class="timeline-science">
+            <div class="tl-sci-item active" onclick="selectPhase(this,'fase1')"><div class="tl-sci-dot">1</div><div class="tl-sci-label">Problema</div></div>
+            <div class="tl-sci-connector"></div>
+            <div class="tl-sci-item" onclick="selectPhase(this,'fase2')"><div class="tl-sci-dot">2</div><div class="tl-sci-label">Revisão</div></div>
+            <div class="tl-sci-connector"></div>
+            <div class="tl-sci-item" onclick="selectPhase(this,'fase3')"><div class="tl-sci-dot">3</div><div class="tl-sci-label">Formulação</div></div>
+            <div class="tl-sci-connector"></div>
+            <div class="tl-sci-item" onclick="selectPhase(this,'fase4')"><div class="tl-sci-dot">4</div><div class="tl-sci-label">Testes</div></div>
+            <div class="tl-sci-connector"></div>
+            <div class="tl-sci-item" onclick="selectPhase(this,'fase5')"><div class="tl-sci-dot">5</div><div class="tl-sci-label">Resultados</div></div>
+          </div>
+          <div class="notebook-card" id="notebook-card">
+            <div class="notebook-header"><span class="notebook-date" id="nb-date">📅 24/03/2026</span><span class="notebook-phase" id="nb-phase">Fase 1 — Identificação do Problema</span></div>
+            <div class="notebook-body"><h4 id="nb-title">🩺 Por que feridas em diabéticos não cicatrizam?</h4><p id="nb-text">O diabetes mellitus compromete múltiplos mecanismos da cicatrização: a hiperglicemia reduz a migração de neutrófilos, prejudica a angiogênese e diminui a síntese de colágeno. Nossa hipótese é que uma fórmula à base de barbatimão poderia compensar esses déficits.</p><div class="notebook-tags" id="nb-tags"><span class="nb-tag">Hipótese central</span><span class="nb-tag">Revisão bibliográfica</span><span class="nb-tag">Problema identificado</span></div><div class="notebook-ref" id="nb-ref">📚 <strong>Referência base:</strong> Singh et al. (2013) — Diabetic Wound Healing: Mechanisms and Treatment</div></div>
+          </div>
+        </div>
+
+        <!-- VIEW: MAPA (MELHORADO) -->
+        <div class="dash-view" id="view-mapa">
+          <div class="page-header">
+            <div class="page-header-left"><h2>🗺️ Mapa do Impacto</h2><p>Prevalência do diabetes mellitus no Brasil — dados epidemiológicos por região e estado</p></div>
+          </div>
+          <div class="mapa-layout-v2">
+            <div class="brazil-map-container-v2">
+              <div class="map-title-overlay">Brasil · Diabetes por Região (Mapa Interativo)</div>
+              <!-- Leaflet Map Container -->
+              <div id="leaflet-map" class="leaflet-map-container"></div>
+            </div>
+            <!-- Painel lateral -->
+            <div class="mapa-stats-panel-v2">
+              <div class="map-legend-v2">
+                <div class="map-legend-title">Legenda por Região</div>
+                <div class="legend-row-v2"><div class="legend-swatch" style="background:#6abf47"></div><div><span class="leg-label">Norte</span><span class="leg-sub">Menor prevalência ≤8,7%</span></div></div>
+                <div class="legend-row-v2"><div class="legend-swatch" style="background:#3ab5e5"></div><div><span class="leg-label">Nordeste</span><span class="leg-sub">Prevalência alta 9–11%</span></div></div>
+                <div class="legend-row-v2"><div class="legend-swatch" style="background:#f5c842"></div><div><span class="leg-label">Centro-Oeste</span><span class="leg-sub">Moderada 8,8–9,1%</span></div></div>
+                <div class="legend-row-v2"><div class="legend-swatch" style="background:#e87820"></div><div><span class="leg-label">Sudeste</span><span class="leg-sub">Muito alta &gt;11%</span></div></div>
+                <div class="legend-row-v2"><div class="legend-swatch" style="background:#d63535"></div><div><span class="leg-label">Sul</span><span class="leg-sub">Alta 9–10%</span></div></div>
+              </div>
+              <div class="map-selected-info" id="map-selected-info">
+                <div class="msi-title">👆 Clique em um estado</div>
+                <div class="msi-subtitle">para ver os dados epidemiológicos</div>
+              </div>
+              <div class="mapa-nacional-stats">
+                <div class="mns-title">🇧🇷 Brasil · Resumo Nacional</div>
+                <div class="mns-grid">
+                  <div class="mns-item"><div class="mns-val">16,8M</div><div class="mns-lbl">diabéticos</div></div>
+                  <div class="mns-item"><div class="mns-val">8,9%</div><div class="mns-lbl">da população</div></div>
+                  <div class="mns-item"><div class="mns-val">80%</div><div class="mns-lbl">das amputações</div></div>
+                  <div class="mns-item"><div class="mns-val">R$4,9bi</div><div class="mns-lbl">custo/ano SUS</div></div>
+                </div>
+              </div>
+              <div class="mapa-info-box-v2"><div class="mib-label">💡 Por que o BemCicatri importa</div><p>Uma solução acessível à base de plantas nativas pode evitar amputações, reduzir custos ao SUS e ampliar o acesso ao cuidado para milhões de brasileiros — especialmente no Nordeste e Sudeste.</p></div>
+              <div class="mapa-fontes">
+                <div class="mf-title">📚 Fontes</div>
+                <ul class="mf-list">
+                  <li>IDF Diabetes Atlas 11ª ed. (2023)</li>
+                  <li>VIGITEL Brasil 2022 — Min. Saúde</li>
+                  <li>SBD — Diretrizes 2023–2024</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: QUIZ (NOVO) -->
+        <div class="dash-view" id="view-quiz">
+          <div class="page-header">
+            <div class="page-header-left"><h2>🧠 Quiz Científico</h2><p>Teste seus conhecimentos sobre diabetes e cicatrização</p></div>
+            <button class="btn btn-ghost btn-sm" onclick="resetQuiz()">↺ Reiniciar</button>
+          </div>
+          <div class="quiz-container" id="quiz-container">
+            <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div></div>
+            <div class="quiz-counter" id="quiz-counter">Pergunta 1 de 10</div>
+            <div class="quiz-card" id="quiz-card">
+              <div class="quiz-question" id="quiz-question">Carregando...</div>
+              <div class="quiz-options" id="quiz-options"></div>
+              <div class="quiz-feedback" id="quiz-feedback"></div>
+            </div>
+            <div class="quiz-result" id="quiz-result" style="display:none">
+              <div class="qr-icon" id="qr-icon">🎉</div>
+              <div class="qr-score" id="qr-score">0 / 10</div>
+              <div class="qr-label" id="qr-label">Resultado</div>
+              <div class="qr-detail" id="qr-detail"></div>
+              <button class="btn btn-primary" style="margin-top:1rem" onclick="resetQuiz()">Tentar novamente</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: CALCULADORA DE RISCO (NOVO) -->
+        <div class="dash-view" id="view-calculadora">
+          <div class="page-header">
+            <div class="page-header-left"><h2>📊 Calculadora de Risco</h2><p>Estime o perfil de risco de úlceras em pacientes diabéticos</p></div>
+          </div>
+          <div class="calc-layout">
+            <div class="calc-form-card">
+              <h3>📋 Dados do Paciente</h3>
+              <p class="sub" style="margin-bottom:1.25rem">Preencha os dados clínicos para calcular o perfil de risco</p>
+              <div class="form-group"><label class="form-label">Tempo de diagnóstico do diabetes</label><select class="form-select" id="calc-tempo"><option value="">Selecione</option><option value="1">Menos de 5 anos</option><option value="2">5 a 10 anos</option><option value="3">10 a 20 anos</option><option value="4">Mais de 20 anos</option></select></div>
+              <div class="form-group"><label class="form-label">Controle glicêmico (HbA1c)</label><select class="form-select" id="calc-glicemia"><option value="">Selecione</option><option value="1">Bem controlado (&lt;7%)</option><option value="2">Moderado (7–9%)</option><option value="3">Mal controlado (&gt;9%)</option></select></div>
+              <div class="form-group"><label class="form-label">Neuropatia periférica</label><select class="form-select" id="calc-neuro"><option value="">Selecione</option><option value="1">Ausente</option><option value="2">Leve a moderada</option><option value="3">Grave (perda de sensibilidade)</option></select></div>
+              <div class="form-group"><label class="form-label">Doença arterial periférica</label><select class="form-select" id="calc-dap"><option value="">Selecione</option><option value="1">Ausente</option><option value="2">Leve</option><option value="3">Grave (isquemia)</option></select></div>
+              <div class="form-group"><label class="form-label">Histórico de úlceras ou amputações</label><select class="form-select" id="calc-historico"><option value="">Selecione</option><option value="1">Nenhum</option><option value="2">Úlcera prévia resolvida</option><option value="3">Úlcera ativa ou amputação prévia</option></select></div>
+              <div class="form-group"><label class="form-label">IMC</label><select class="form-select" id="calc-imc"><option value="">Selecione</option><option value="1">Normal (18,5–24,9)</option><option value="2">Sobrepeso (25–29,9)</option><option value="3">Obesidade (≥30)</option></select></div>
+              <button class="btn btn-primary btn-block" style="margin-top:.5rem" onclick="calcularRisco()">Calcular Risco</button>
+              <div class="alert alert-error" id="calc-err" style="margin-top:.75rem">Preencha todos os campos para calcular.</div>
+            </div>
+            <div class="calc-result-card" id="calc-result" style="display:none">
+              <div class="cr-gauge-wrap">
+                <svg class="cr-gauge-svg" viewBox="0 0 200 120">
+                  <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#EFF2F5" stroke-width="16" stroke-linecap="round"/>
+                  <path id="cr-gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#00B4A0" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 251"/>
+                </svg>
+                <div class="cr-gauge-label"><div class="cr-gauge-val" id="cr-gauge-val">-</div><div style="font-size:.7rem;color:var(--gray400)">Risco</div></div>
+              </div>
+              <div class="cr-level" id="cr-level">-</div>
+              <div class="cr-desc" id="cr-desc"></div>
+              <div class="cr-recommendations"><h4>Recomendações</h4><div id="cr-recs"></div></div>
+              <div class="cr-disclaimer">⚠️ Ferramenta educativa. Não substitui avaliação médica profissional.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: PACIENTES (MELHORADO) -->
+        <div class="dash-view" id="view-pacientes">
+          <div class="page-header">
+            <div class="page-header-left"><h2>👥 Pacientes</h2><p>Gerencie e acompanhe o progresso de cada paciente em tratamento</p></div>
+            <button class="btn btn-primary" onclick="openAddPatient()">+ Novo Paciente</button>
+          </div>
+          <!-- Estatísticas rápidas -->
+          <div class="pat-stats-row" id="pat-stats-row">
+            <div class="pat-stat-card"><div class="psc-val" id="stat-total">0</div><div class="psc-lbl">Total</div></div>
+            <div class="pat-stat-card teal"><div class="psc-val" id="stat-tratamento">0</div><div class="psc-lbl">Em tratamento</div></div>
+            <div class="pat-stat-card warn"><div class="psc-val" id="stat-alto-risco">0</div><div class="psc-lbl">Alto risco</div></div>
+            <div class="pat-stat-card navy"><div class="psc-val" id="stat-tipo2">0</div><div class="psc-lbl">Tipo 2</div></div>
+          </div>
+          <!-- Filtros -->
+          <div class="filter-bar-v2">
+            <input type="text" class="filter-input" placeholder="🔍 Buscar por nome..." oninput="filterPatients(this.value)" id="pat-search"/>
+            <select class="filter-select" onchange="filterPatientsByWagner(this.value)" id="pat-filter-wagner">
+              <option value="">Todos os graus Wagner</option>
+              <option value="Grau 0">Grau 0</option>
+              <option value="Grau 1">Grau 1</option>
+              <option value="Grau 2">Grau 2</option>
+              <option value="Grau 3">Grau 3</option>
+              <option value="Grau 4">Grau 4</option>
+              <option value="Grau 5">Grau 5</option>
+            </select>
+            <select class="filter-select" onchange="filterPatientsByDiab(this.value)" id="pat-filter-diab">
+              <option value="">Todos os tipos</option>
+              <option value="Tipo 1">Tipo 1</option>
+              <option value="Tipo 2">Tipo 2</option>
+              <option value="Gestacional">Gestacional</option>
+            </select>
+          </div>
+          <div class="patients-grid" id="patients-grid"></div>
+        </div>
+
+        <!-- VIEW: SOBRE -->
+        <div class="dash-view" id="view-sobre">
+          <div class="about-hero"><h2>Sobre o BemCicatri</h2><p>Conheça a ciência, a história e a missão por trás deste projeto de iniciação científica.</p></div>
+          <div class="about-grid">
+            <div class="about-card">
+              <div class="about-card-icon">
+                <svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="20" fill="#e8f9f7"/><path d="M22 8 Q30 14 28 22 Q26 30 22 34 Q18 30 16 22 Q14 14 22 8Z" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.12)"/><path d="M16 22 Q22 20 28 22" stroke="#00b4a0" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+              </div>
+              <div class="about-card-title">Barbatimão</div>
+              <p class="about-card-text"><em>Stryphnodendron adstringens</em> — planta nativa do Cerrado com taninos de alta atividade antimicrobiana, anti-inflamatória e adstringente comprovados pela literatura.</p>
+            </div>
+            <div class="about-card">
+              <div class="about-card-icon">
+                <svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="20" fill="#e8f9f7"/><path d="M16 32 L18 22 L22 26 L26 18 L30 32" stroke="#00b4a0" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="22" cy="14" r="3" stroke="#00b4a0" stroke-width="1.8" fill="none"/></svg>
+              </div>
+              <div class="about-card-title">Metodologia</div>
+              <p class="about-card-text">Maceração alcoólica da casca, incorporação em base gel-creme, avaliação de estabilidade física. 42+ referências bibliográficas em PubMed e SciELO.</p>
+            </div>
+            <div class="about-card">
+              <div class="about-card-icon">
+                <svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="20" fill="#e8f9f7"/><path d="M22 12 Q28 16 27 22 Q26 28 22 30 Q18 28 17 22 Q16 16 22 12Z" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.12)"/><path d="M17 22 L20 25 L27 18" stroke="#00b4a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="about-card-title">Impacto Social</div>
+              <p class="about-card-text">Proposta inclusiva para diabéticos — grupo frequentemente ignorado pelos produtos convencionais de cuidado com a saúde da pele.</p>
+            </div>
+            <div class="about-card">
+              <div class="about-card-icon">
+                <svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="20" fill="#e8f9f7"/><path d="M14 28 L14 20 L18 20 L18 28" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.2)" stroke-linejoin="round"/><path d="M19.5 28 L19.5 16 L23.5 16 L23.5 28" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.3)" stroke-linejoin="round"/><path d="M25 28 L25 12 L29 12 L29 28" stroke="#00b4a0" stroke-width="1.8" fill="rgba(0,180,160,0.45)" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="about-card-title">Feira de Ciências 2026</div>
+              <p class="about-card-text">Tema: Cidadania e Convivência Democrática. A ciência escolar como instrumento de inclusão e transformação social.</p>
+            </div>
+          </div>
+          <div class="about-content-grid">
+            <div class="text-card">
+              <h3>📜 Linha do Tempo</h3>
+              <div class="timeline">
+                <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Mar/2026</div><div class="tl-title">Identificação do Problema</div><p class="tl-text">Levantamento do problema clínico e hipótese central sobre cicatrização diabética e barbatimão.</p></div>
+                <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Abr/2026</div><div class="tl-title">Revisão Bibliográfica</div><p class="tl-text">42 artigos analisados em PubMed, SciELO e Google Scholar sobre fitoterapia e feridas diabéticas.</p></div>
+                <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Mai/2026</div><div class="tl-title">Formulação</div><p class="tl-text">Maceração do barbatimão, desenvolvimento da base gel-creme, avaliação de estabilidade.</p></div>
+                <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Mai/2026</div><div class="tl-title">Testes</div><p class="tl-text">Avaliação de pH, textura, cor e odor. Sem testes em humanos — respeitando normas éticas escolares.</p></div>
+                <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Mai/2026</div><div class="tl-title">Feira de Ciências</div><p class="tl-text">Apresentação do projeto completo com plataforma digital interativa.</p></div>
+              </div>
+            </div>
+            <div class="text-card">
+              <h3>💊 Mecanismos de Ação do Barbatimão</h3>
+              <p style="font-size:.875rem;color:var(--gray400);line-height:1.75;margin-bottom:1rem">Os taninos e flavonoides do barbatimão atuam em 4 mecanismos relevantes para a cicatrização:</p>
+              <div style="display:flex;flex-direction:column;gap:.75rem">
+                <div style="display:flex;gap:.75rem;align-items:flex-start"><div style="background:var(--mint);color:var(--teal2);border-radius:8px;padding:.3rem .5rem;font-size:.75rem;font-weight:700;flex-shrink:0">01</div><div><div style="font-size:.9rem;font-weight:600;color:var(--navy)">Ação Antimicrobiana</div><p style="font-size:.82rem;color:var(--gray400);margin-top:.2rem">Taninos precipitam proteínas bacterianas, inibindo o crescimento de S. aureus e outras bactérias comuns em feridas.</p></div></div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start"><div style="background:var(--mint);color:var(--teal2);border-radius:8px;padding:.3rem .5rem;font-size:.75rem;font-weight:700;flex-shrink:0">02</div><div><div style="font-size:.9rem;font-weight:600;color:var(--navy)">Adstringência</div><p style="font-size:.82rem;color:var(--gray400);margin-top:.2rem">Contração do tecido e redução do exsudato, favorecendo a formação de tecido de granulação.</p></div></div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start"><div style="background:var(--mint);color:var(--teal2);border-radius:8px;padding:.3rem .5rem;font-size:.75rem;font-weight:700;flex-shrink:0">03</div><div><div style="font-size:.9rem;font-weight:600;color:var(--navy)">Anti-inflamatório</div><p style="font-size:.82rem;color:var(--gray400);margin-top:.2rem">Redução de citocinas inflamatórias que cronificam a ferida e bloqueiam a cicatrização em diabéticos.</p></div></div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start"><div style="background:var(--mint);color:var(--teal2);border-radius:8px;padding:.3rem .5rem;font-size:.75rem;font-weight:700;flex-shrink:0">04</div><div><div style="font-size:.9rem;font-weight:600;color:var(--navy)">Antioxidante</div><p style="font-size:.82rem;color:var(--gray400);margin-top:.2rem">Flavonoides neutralizam radicais livres, reduzindo o estresse oxidativo elevado em tecidos diabéticos.</p></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: CONFIGURAÇÕES -->
+        <div class="dash-view" id="view-settings">
+          <div class="page-header"><div class="page-header-left"><h2>⚙️ Configurações</h2><p>Gerencie sua conta e preferências</p></div></div>
+          <div class="settings-grid">
+            <div class="settings-nav">
+              <div class="settings-nav-item active" onclick="switchSettingsTab(this,'st-perfil')">👤 Meu Perfil</div>
+              <div class="settings-nav-item" onclick="switchSettingsTab(this,'st-notif')">🔔 Notificações</div>
+              <div class="settings-nav-item" onclick="switchSettingsTab(this,'st-segur')">🔒 Segurança</div>
+            </div>
+            <div>
+              <div class="settings-panel" id="st-perfil">
+                <h3>Meu Perfil</h3><p class="sub">Atualize seus dados pessoais</p>
+                <div class="form-row"><div class="form-group"><label class="form-label">Nome</label><input class="form-input" type="text" id="st-nome" /></div><div class="form-group"><label class="form-label">Sobrenome</label><input class="form-input" type="text" id="st-sobrenome" /></div></div>
+                <div class="form-group"><label class="form-label">E-mail</label><input class="form-input" type="email" id="st-email" /></div>
+                <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" type="tel" id="st-tel" /></div>
+                <div class="form-group"><label class="form-label">Tipo de Perfil</label><input class="form-input" type="text" id="st-tipo" readonly style="background:var(--gray50);color:var(--gray400)" /></div>
+                <button class="btn btn-primary" onclick="saveProfile()">Salvar Alterações</button>
+                <div class="alert alert-error" id="profile-err" style="margin-top:.75rem"></div>
+                <div class="alert alert-success" id="profile-ok" style="margin-top:.75rem">✅ Perfil atualizado!</div>
+              </div>
+              <div class="settings-panel" id="st-notif" style="display:none">
+                <h3>Notificações</h3><p class="sub">Preferências de atualização</p>
+                <div class="toggle-row"><div class="toggle-info"><h4>Notificações por E-mail</h4><p>Receba atualizações por e-mail</p></div><label class="toggle"><input type="checkbox" id="notif-email" checked /><span class="toggle-slider"></span></label></div>
+                <div class="toggle-row"><div class="toggle-info"><h4>Atualizações Científicas</h4><p>Novos artigos e protocolos</p></div><label class="toggle"><input type="checkbox" id="notif-clinica" checked /><span class="toggle-slider"></span></label></div>
+                <button class="btn btn-primary" style="margin-top:1rem" onclick="saveNotifPrefs()">Salvar Preferências</button>
+              </div>
+              <div class="settings-panel" id="st-segur" style="display:none">
+                <h3>Segurança</h3><p class="sub">Altere sua senha</p>
+                <div class="alert alert-error" id="pass-err" style="margin-bottom:.75rem"></div>
+                <div class="alert alert-success" id="pass-ok" style="margin-bottom:.75rem"></div>
+                <div class="form-group"><label class="form-label">Senha Atual</label><input class="form-input" type="password" id="pass-atual" placeholder="••••••••" /></div>
+                <div class="form-group"><label class="form-label">Nova Senha</label><input class="form-input" type="password" id="pass-nova" placeholder="Min. 8 caracteres" /></div>
+                <div class="form-group"><label class="form-label">Confirmar Nova Senha</label><input class="form-input" type="password" id="pass-nova2" placeholder="Repita a nova senha" /></div>
+                <button class="btn btn-primary" onclick="changePassword()">Alterar Senha</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD PATIENT (MELHORADO) -->
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal-box modal-lg">
+    <div class="modal-header"><h3>➕ Novo Paciente</h3><button class="modal-close" onclick="closeModal('modal-patient')">✕</button></div>
+    <div class="modal-body">
+      <div class="alert alert-error" id="pat-err">Preencha todos os campos obrigatórios.</div>
+      <div class="modal-form-grid">
+        <div class="form-group span2"><label class="form-label">Nome completo *</label><input class="form-input" type="text" id="p-nome" placeholder="Nome do paciente" /></div>
+        <div class="form-group"><label class="form-label">Idade *</label><input class="form-input" type="number" id="p-idade" placeholder="Ex: 58" min="1" max="120" /></div>
+        <div class="form-group"><label class="form-label">Tipo de Diabetes</label><select class="form-select" id="p-diab"><option value="">Selecione</option><option>Tipo 1</option><option>Tipo 2</option><option>Gestacional</option><option>MODY</option></select></div>
+        <div class="form-group"><label class="form-label">Localização da Ferida</label><input class="form-input" type="text" id="p-ferida" placeholder="Ex: Planta do pé direito" /></div>
+        <div class="form-group"><label class="form-label">Telefone *</label><input class="form-input" type="tel" id="p-tel" placeholder="(00) 00000-0000" oninput="maskPhone(this)" maxlength="15" /></div>
+        <div class="form-group"><label class="form-label">Grau Wagner</label><select class="form-select" id="p-wagner"><option value="">Selecione</option><option>Grau 0 — Sem úlcera ativa</option><option>Grau 1 — Úlcera superficial</option><option>Grau 2 — Úlcera profunda</option><option>Grau 3 — Úlcera com abscesso</option><option>Grau 4 — Gangrena localizada</option><option>Grau 5 — Gangrena extensa</option></select></div>
+        <div class="form-group"><label class="form-label">HbA1c (%)</label><input class="form-input" type="number" id="p-hba1c" placeholder="Ex: 9,2" step="0.1" min="4" max="20"/></div>
+        <div class="form-group"><label class="form-label">IMC (kg/m²)</label><input class="form-input" type="number" id="p-imc" placeholder="Ex: 28,5" step="0.1" min="10" max="60"/></div>
+        <div class="form-group span2"><label class="form-label">Observações Clínicas</label><textarea class="form-input" rows="3" id="p-obs" placeholder="Comorbidades, alergias, histórico..." style="resize:vertical"></textarea></div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="addPatient()">Cadastrar Paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PATIENT DETAIL -->
+<div class="modal-overlay" id="modal-patient-detail">
+  <div class="modal-box modal-lg">
+    <div class="modal-header">
+      <div>
+        <h3 id="detail-title">Ficha do Paciente</h3>
+        <span class="detail-id" id="detail-id">PAC-001</span>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="if(confirm('Remover este paciente?')) { deletePatient(currentDetailPatientId); closeModal('modal-patient-detail'); renderPatients(); renderHomePatients(); showToast('🗑 Paciente removido.'); }">🗑 Deletar</button>
+        <button class="modal-close" onclick="closeModal('modal-patient-detail')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="detail-layout">
+        <div class="detail-left">
+          <div class="detail-avatar" id="detail-avatar">JM</div>
+          <div class="detail-info-list" id="detail-info-list"></div>
+        </div>
+        <div class="detail-right">
+          <div class="detail-section">
+            <h4>📈 Progresso de Cicatrização</h4>
+            <div class="detail-progress-wrap">
+              <div class="detail-progress-bar"><div class="detail-progress-fill" id="detail-progress"></div></div>
+              <span class="detail-progress-val" id="detail-progress-val">0%</span>
+            </div>
+            <div class="detail-phase-label" id="detail-phase">Fase inicial</div>
+          </div>
+          <div class="detail-section">
+            <h4>🗓️ Histórico de Atualizações</h4>
+            <div class="detail-history" id="detail-history">
+              <div class="dh-item"><div class="dh-dot"></div><div class="dh-text"><strong>Cadastro inicial</strong><span class="dh-date" id="detail-reg-date">—</span></div></div>
+            </div>
+          </div>
+          <div class="detail-section">
+            <h4>📝 Adicionar Evolução</h4>
+            <div class="detail-evo-form">
+              <input class="form-input" id="evo-text" placeholder="Observação clínica (ex: redução do exsudato...)" style="margin-bottom:.5rem"/>
+              <div style="display:flex;gap:.5rem;align-items:center">
+                <label style="font-size:.82rem;color:var(--gray400)">Cicatrização:</label>
+                <input type="range" min="0" max="100" value="0" id="evo-pct" style="flex:1" oninput="document.getElementById('evo-pct-val').textContent=this.value+'%'"/>
+                <span id="evo-pct-val" style="font-size:.82rem;font-weight:600;color:var(--teal);min-width:2.5rem">0%</span>
+              </div>
+              <button class="btn btn-primary btn-sm" style="margin-top:.5rem;width:100%" onclick="addEvolution()">+ Registrar Evolução</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<!-- Storage & Offline Support -->
+<script src="storage-manager.js"></script>
+<script src="offline-manager.js"></script>
+<script src="storage-integration.js"></script>
+
+<!-- App Principal -->
+<script src="app.js"></script>
+<script src="microscopia.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+**INICIAR**
+
+->D:
+
+->cd "d:\área de trabalho\PORTIFOLIO\Entrada-portifolio\portifolio\BemCicatri"
+
+->npm start
