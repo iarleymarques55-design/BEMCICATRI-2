@@ -188,6 +188,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Servir index.html com GOOGLE_CLIENT_ID injetado
+const fs = require('fs');
+const path = require('path');
+app.get('/', (req, res) => {
+  const indexPath = path.join(__dirname, 'index.html');
+  let html = fs.readFileSync(indexPath, 'utf8');
+  html = html.replace('%%GOOGLE_CLIENT_ID%%', process.env.GOOGLE_CLIENT_ID || '');
+  res.send(html);
+});
+
 // ===================== EMAIL VERIFICATION =====================
 app.post('/api/email/verify', async (req, res) => {
   try {
@@ -223,6 +233,84 @@ app.post('/api/email/verify', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro na verificação de email:', error.message);
     res.status(500).json({ valid: false, reason: 'verification_error', message: 'Erro ao verificar e-mail.' });
+  }
+});
+
+// ===================== AUTH — GOOGLE OAUTH =====================
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { access_token } = req.body;
+    if (!access_token) return res.status(400).json({ error: 'Token ausente' });
+
+    // Buscar dados do usuário no Google
+    const googleRes = await new Promise((resolve, reject) => {
+      https.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`, (r) => {
+        let data = '';
+        r.on('data', chunk => data += chunk);
+        r.on('end', () => resolve({ status: r.statusCode, body: JSON.parse(data) }));
+      }).on('error', reject);
+    });
+
+    if (googleRes.status !== 200 || !googleRes.body.email) {
+      return res.status(401).json({ error: 'Token Google inválido' });
+    }
+
+    const { email, given_name, family_name, sub } = googleRes.body;
+    const emailLower = email.toLowerCase();
+    const connection = await getConnection();
+
+    try {
+      // Verificar se usuário já existe
+      const [existing] = await connection.query('SELECT * FROM users WHERE email = ?', [emailLower]);
+
+      let user;
+      if (existing.length > 0) {
+        user = existing[0];
+        // Marcar como verificado se ainda não estiver
+        if (!user.verified) {
+          await connection.query('UPDATE users SET verified = TRUE WHERE email = ?', [emailLower]);
+          user.verified = true;
+        }
+      } else {
+        // Criar novo usuário com Google
+        const [result] = await connection.query(
+          'INSERT INTO users (email, pass, nome, sobrenome, tipo, tel, verified, created_at) VALUES (?, ?, ?, ?, ?, ?, TRUE, NOW())',
+          [emailLower, `google_${sub}`, given_name || 'Usuário', family_name || '', 'Visitante', '']
+        );
+        const [newUser] = await connection.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
+        user = newUser[0];
+      }
+
+      // Registrar login
+      try {
+        await connection.query(
+          'INSERT INTO login_history (user_id, date, timestamp) VALUES (?, ?, ?)',
+          [user.id, new Date().toLocaleString('pt-BR'), Date.now()]
+        );
+      } catch (e) {}
+
+      connection.release();
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          nome: user.nome,
+          sobrenome: user.sobrenome,
+          tipo: user.tipo,
+          tel: user.tel,
+          notifEmail: user.notif_email,
+          notifClinica: user.notif_clinica
+        }
+      });
+    } catch (dbError) {
+      connection.release();
+      console.error('Erro no banco ao autenticar Google:', dbError.message);
+      res.status(500).json({ error: 'Erro interno' });
+    }
+  } catch (error) {
+    console.error('Erro no Google OAuth:', error.message);
+    res.status(500).json({ error: 'Erro ao autenticar com Google' });
   }
 });
 
