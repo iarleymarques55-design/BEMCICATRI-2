@@ -87,52 +87,38 @@ async function testDatabaseConnection() {
   }
 }
 
-// ===================== EMAIL SENDER (Resend API HTTP) =====================
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-const RESEND_FROM_NAME = process.env.RESEND_FROM_NAME || 'BemCicatri';
+// ===================== EMAIL SENDER (Nodemailer + Gmail) =====================
+const nodemailer = require('nodemailer');
+
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 
 let APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
+const gmailTransporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_APP_PASSWORD,
+  },
+});
+
 function mailersendSendEmail({ to, subject, html }) {
   return new Promise((resolve, reject) => {
-    if (!RESEND_API_KEY) {
-      console.warn('⚠️ RESEND_API_KEY não configurada. Email não enviado.');
-      return resolve({ messageId: 'no-resend' });
+    if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+      console.warn('⚠️ GMAIL_USER ou GMAIL_APP_PASSWORD não configurados. Email não enviado.');
+      return resolve({ messageId: 'no-gmail' });
     }
 
-    const body = JSON.stringify({
-      from: `${RESEND_FROM_NAME} <${RESEND_FROM_EMAIL}>`,
-      to: [to],
+    gmailTransporter.sendMail({
+      from: `BemCicatri <${GMAIL_USER}>`,
+      to,
       subject,
       html,
+    }, (err, info) => {
+      if (err) return reject(err);
+      resolve({ messageId: info.messageId });
     });
-
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          const parsed = JSON.parse(data);
-          resolve({ messageId: parsed.id || 'sent' });
-        } else {
-          reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.write(body);
-    req.end();
   });
 }
 
