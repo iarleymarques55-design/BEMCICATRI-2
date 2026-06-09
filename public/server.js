@@ -87,34 +87,34 @@ async function testDatabaseConnection() {
   }
 }
 
-// ===================== EMAIL SENDER (Mailersend API HTTP) =====================
-const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
-const MAILERSEND_FROM_EMAIL = process.env.MAILERSEND_FROM_EMAIL || 'curso3788@gmail.com';
-const MAILERSEND_FROM_NAME = process.env.MAILERSEND_FROM_NAME || 'BemCicatri';
+// ===================== EMAIL SENDER (Resend API HTTP) =====================
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+const RESEND_FROM_NAME = process.env.RESEND_FROM_NAME || 'BemCicatri';
 
 let APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
 function mailersendSendEmail({ to, subject, html }) {
   return new Promise((resolve, reject) => {
-    if (!MAILERSEND_API_KEY) {
-      console.warn('⚠️ MAILERSEND_API_KEY não configurada. Email não enviado.');
-      return resolve({ messageId: 'no-mailersend' });
+    if (!RESEND_API_KEY) {
+      console.warn('⚠️ RESEND_API_KEY não configurada. Email não enviado.');
+      return resolve({ messageId: 'no-resend' });
     }
 
     const body = JSON.stringify({
-      from: { email: MAILERSEND_FROM_EMAIL, name: MAILERSEND_FROM_NAME },
-      to: [{ email: to }],
+      from: `${RESEND_FROM_NAME} <${RESEND_FROM_EMAIL}>`,
+      to: [to],
       subject,
       html,
     });
 
     const req = https.request({
-      hostname: 'api.mailersend.com',
-      path: '/v1/email',
+      hostname: 'api.resend.com',
+      path: '/emails',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MAILERSEND_API_KEY}`,
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Length': Buffer.byteLength(body),
       },
     }, (res) => {
@@ -122,9 +122,10 @@ function mailersendSendEmail({ to, subject, html }) {
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve({ messageId: res.headers['x-message-id'] || 'sent' });
+          const parsed = JSON.parse(data);
+          resolve({ messageId: parsed.id || 'sent' });
         } else {
-          reject(new Error(`Mailersend API error ${res.statusCode}: ${data}`));
+          reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
         }
       });
     });
