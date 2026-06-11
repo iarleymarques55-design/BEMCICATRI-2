@@ -625,7 +625,7 @@ async function doLogin() {
         const data = await res.json();
         if (btn) { btn.disabled = false; btn.innerHTML = 'Entrar na Plataforma'; }
         if (data.error === 'not_verified') {
-          showAlert('login-err', true, '❌ Conta não ativada. Verifique seu e-mail de confirmação.');
+          showAlert('login-err', true, '❌ E-mail ou senha incorretos.');
         } else {
           showAlert('login-err', true, '❌ E-mail ou senha incorretos. Verifique e tente novamente.');
         }
@@ -706,35 +706,15 @@ async function doRegister() {
   
   try {
     if (USE_API) {
-      // Verificar e-mail com o endpoint antes de registrar
-      const verifyResp = await fetch(`${getApiUrl()}/email/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: f.email.toLowerCase() })
-      });
-      const verifyData = await verifyResp.json();
-
-      if (!verifyData.valid) {
-        if (btn) { btn.disabled = false; btn.innerHTML = 'Criar Minha Conta'; }
-        if (verifyData.reason === 'email_already_registered' || (verifyData.reason === 'no_mx_records' || verifyData.reason === 'smtp_invalid')) {
-          setFieldError('reg-email','E-mail já cadastrado');
-          showAlert('reg-err', true, '⚠️ Este e-mail já tem conta.');
-        } else {
-          setFieldError('reg-email','E-mail inválido ou domínio não existe');
-          showAlert('reg-err', true, verifyData.message || '⚠️ E-mail inválido. Use outro e-mail.');
-        }
-        return;
-      }
-
-      // Usar API
+      // Usar API — cadastro direto sem verificação de e-mail
       const res = await fetch(`${getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: f.email, pass: f.pass, nome: f.nome, sobrenome: f.sob, tipo: f.tipo, tel: f.tel })
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         if (btn) { btn.disabled = false; btn.innerHTML = 'Criar Minha Conta'; }
         if (data.error === 'email_exists') {
@@ -745,10 +725,14 @@ async function doRegister() {
         }
         return;
       }
-      
+
+      // Conta criada — salva sessão e entra direto
       if (btn) { btn.disabled = false; btn.innerHTML = 'Criar Minha Conta'; }
-      showAlert('reg-ok', true, '✅ Conta criada! Um código de confirmação foi enviado por e-mail.');
-      setTimeout(() => showPage('page-confirm-email'), 1500);
+      currentUser = data.user;
+      patients = [];
+      sessionStorage.setItem('bemc_session', currentUser.email);
+      showAlert('reg-ok', true, '✅ Conta criada com sucesso!');
+      setTimeout(() => showPage('page-dashboard'), 1500);
     } else {
       // Usar localStorage
       const u = lsGet('bemc_users') || {};
@@ -762,13 +746,13 @@ async function doRegister() {
       const newUser = { email: f.email, pass: f.pass, nome: f.nome, sobrenome: f.sob, tipo: f.tipo, tel: f.tel };
       u[k] = newUser;
       lsSet('bemc_users', u);
-      
+
       if (btn) { btn.disabled = false; btn.innerHTML = 'Criar Minha Conta'; }
       currentUser = newUser;
       patients = [];
       sessionStorage.setItem('bemc_session', currentUser.email);
-      showAlert('reg-ok', true, '✅ Conta criada! Um código de confirmação foi enviado por e-mail.');
-      setTimeout(() => showPage('page-confirm-email'), 1500);
+      showAlert('reg-ok', true, '✅ Conta criada com sucesso!');
+      setTimeout(() => showPage('page-dashboard'), 1500);
     }
   } catch (e) {
     if (btn) { btn.disabled = false; btn.innerHTML = 'Criar Minha Conta'; }
